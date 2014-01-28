@@ -38,7 +38,7 @@ public class AccessRuleApplet {
 
     final private static String ACCESS_RULE_APPLET_TAG = "AccessRuleApplet";
 
-    final private static int _MAX_LEN = 0xF0; // should be adapted by OEM, this is a defensive value since some devices/modems have problems with Le=0x00 or 0xFF.
+    final private static int _MAX_LEN = 0x00; // should be adapted by OEM, this is a defensive value since some devices/modems have problems with Le=0x00 or 0xFF.
 
     final private static CommandApdu mGetAll = new CommandApdu(0x80, 0xCA, 0xFF, 0x40, _MAX_LEN);
 

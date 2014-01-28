@@ -25,6 +25,7 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceChannel;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 import android.os.RemoteException;
+import android.util.Log;
 
 /**
  * Instances of this class represent an ISO7816-4 channel opened to a secure
@@ -37,6 +38,7 @@ import android.os.RemoteException;
  */
 public class Channel {
 
+    public static final String _TAG = "Channel";
     private Session mSession;
 
     private final ISmartcardServiceChannel mChannel;
@@ -64,6 +66,9 @@ public class Channel {
         }
         SmartcardError error = new SmartcardError();
         try {
+            if (mChannel.isClosed())
+                return;
+
             mChannel.close(error);
         } catch (RemoteException e) {
         }
@@ -77,10 +82,12 @@ public class Channel {
      */
     public boolean isClosed() {
         if (mService == null || mService.isConnected() == false) {
-            throw new IllegalStateException("service not connected to system");
+            Log.i(_TAG, "isClosed(): service not connected to system");
+            return true;
         }
         if (mChannel == null) {
-            throw new NullPointerException("channel must not be null");
+            Log.i(_TAG, "isClosed(): channel must not be null");
+            return true;
         }
         try {
             return mChannel.isClosed();

@@ -62,6 +62,8 @@ class Channel implements IChannel, IBinder.DeathRecipient {
     protected boolean mHasSelectedAid = false;
     protected byte[] mAid = null;
 
+    public static final String _TAG = "IChannel";
+
     Channel(SmartcardServiceSession session, Terminal terminal, int channelNumber, ISmartcardServiceCallback callback) {
         this.mChannelNumber = channelNumber;
         this.mSession = session;
@@ -75,6 +77,17 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         } catch (RemoteException e) {
             Log.e(SmartcardService._TAG, "Failed to register client callback");
         }
+        if (this.mSelectResponse != null) {
+            Log.i(_TAG, "Channel(): mSelectResponse = " + ByteArrayToString(this.mSelectResponse, 0));
+        }
+    }
+
+    private String ByteArrayToString(byte[] b, int start) {
+        StringBuffer s = new StringBuffer();
+        for (int i = start; i < b.length; i++) {
+            s.append(Integer.toHexString(0x100 + (b[i] & 0xff)).substring(1));
+        }
+        return s.toString();
     }
 
     public void binderDied() {
@@ -199,6 +212,101 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                 throw new IllegalArgumentException("SELECT command not allowed");
             }
 
+                        if (command.length > 4) {
+                            int sizeOfLcField = 0;
+                            int commandDataLength = 0;
+                            int startIndexLeField = 0;
+                            int maxExpectedResponseDataLength = 0;
+
+                            if (command.length == 5) {
+                                maxExpectedResponseDataLength = command[4] & 0xff;
+                                if (maxExpectedResponseDataLength == 0)
+                                    maxExpectedResponseDataLength = 256;
+                                Log.i(_TAG, "transmit(): Lc absent, Le = " + command[4]);
+                            }
+                            else if ((command.length == 7) &&
+                                     (command[4] == (byte) 0x00)) { // only with extended Le (3 bytes)
+
+                                maxExpectedResponseDataLength = command[startIndexLeField + 1] & 0xff;
+                                maxExpectedResponseDataLength = maxExpectedResponseDataLength * 256;
+                                maxExpectedResponseDataLength += command[startIndexLeField + 2] & 0xff;
+
+                                if (maxExpectedResponseDataLength == 0)
+                                    maxExpectedResponseDataLength = 65536;
+
+                                Log.i(_TAG, "transmit(): Lc absent, Le = " + maxExpectedResponseDataLength);
+                            }
+                            // if this has extended Lc field
+                            else if (command[4] == (byte) 0x00) {
+                                if ((command.length > 7) &&
+                                    ((command[5] != 0) || (command[6] != 0))) {  // extended Lc must not be zero
+                                    commandDataLength = command[5] & 0xff;
+                                    commandDataLength = commandDataLength * 256;
+                                    commandDataLength += command[6] & 0xff;
+
+                                    if ((command.length != commandDataLength + 7) &&  // without Le
+                                        (command.length != commandDataLength + 8) &&  // with Le
+                                        (command.length != commandDataLength + 9)) {  // with extended Le (2 bytes)
+                                        throw new IllegalArgumentException("Invalid command data field with extended Lc");
+                                    }
+                                    else {
+                                        startIndexLeField = 7 + commandDataLength;
+                                        sizeOfLcField = 3;
+                                    }
+                                }
+                                else {
+                                    throw new IllegalArgumentException("Invalid extended Lc field");
+                                }
+                            }
+                            else {
+                                commandDataLength = command[4] & 0xff;
+
+                                if ((command.length != commandDataLength + 5) &&  // without Le
+                                    (command.length != commandDataLength + 6) &&  // with Le
+                                    (command.length != commandDataLength + 7)) {  // with extended Le (2 bytes)
+                                    throw new IllegalArgumentException("Invalid command data field");
+                                }
+                                else {
+                                    startIndexLeField = 5 + commandDataLength;
+                                    sizeOfLcField = 1;
+                                }
+                            }
+
+                            if (startIndexLeField > 0) {
+                                if (command.length == startIndexLeField) {
+                                    Log.i(_TAG, "transmit(): Lc = " + commandDataLength + " Le absent");
+                                }
+                                else {
+                                    if ((sizeOfLcField == 3) &&
+                                        (command.length != startIndexLeField + 2)) {
+                                        throw new IllegalArgumentException("Invalid Le field with extended Lc field");
+                                    }
+
+                                    // if this has extended Le field with Lc present
+                                    if (command.length == startIndexLeField + 2) {
+                                        maxExpectedResponseDataLength = command[startIndexLeField] & 0xff;
+                                        maxExpectedResponseDataLength = maxExpectedResponseDataLength * 256;
+                                        maxExpectedResponseDataLength += command[startIndexLeField + 1] & 0xff;
+
+                                        if (maxExpectedResponseDataLength == 0)
+                                            maxExpectedResponseDataLength = 65536;
+                                    }
+                                    else if (command.length == startIndexLeField + 1) { // short Le
+                                        maxExpectedResponseDataLength = command[startIndexLeField] & 0xff;
+                                    }
+                                    else {
+                                        throw new IllegalArgumentException("Invalid Le field");
+                                    }
+
+                                    Log.i(_TAG, "transmit(): Lc = " + commandDataLength + " Le = " + maxExpectedResponseDataLength);
+                                }
+                            }
+                            else {
+                                if (commandDataLength > 0) {
+                                    Log.i(_TAG, "transmit(): Lc = " + commandDataLength + " Le absent");
+                                }
+                            }
+                        }
         } else {
             // GlobalPlatform command
         }

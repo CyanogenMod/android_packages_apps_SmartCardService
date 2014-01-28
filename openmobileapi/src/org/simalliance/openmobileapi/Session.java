@@ -28,6 +28,7 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceSession;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 import android.os.RemoteException;
+import android.util.Log;
 
 /**
  * Instances of this class represent a connection session to one of the secure
@@ -43,6 +44,7 @@ public class Session {
     private final SEService mService;
     private final Reader mReader;
     private final ISmartcardServiceSession mSession;
+    public static final String _TAG = "Session";
 
     Session(SEService service, ISmartcardServiceSession session, Reader reader) {
         mService = service;
@@ -189,6 +191,12 @@ public class Session {
             throw new NullPointerException("reader must not be null");
         }
 
+        if(aid == null || aid.length == 0)
+        {
+            Log.i(_TAG, "openBasicChannel(): aid is null or 0 length");
+            return null;
+        }
+
         synchronized (mLock) {
             ISmartcardServiceChannel channel;
             SmartcardError error = new SmartcardError();
@@ -198,7 +206,9 @@ public class Session {
                         mService.getCallback(),
                         error);
             } catch (Exception e) {
-                throw new IOException(e.getMessage());
+                //throw new IOException(e.getMessage());
+                Log.i(_TAG, "openBasicChannel(): Exception");
+                return null;
             }
             SEService.checkForException(error);
             error.clear();
@@ -280,7 +290,9 @@ public class Session {
                         mService.getCallback(),
                         error);
             } catch (Exception e) {
-                throw new IOException(e.getMessage());
+                //throw new IOException(e.getMessage());
+                Log.i(_TAG, "openLogicalChannel(): Exception");
+                return null;
             }
             SEService.checkForException(error);
             error.clear();

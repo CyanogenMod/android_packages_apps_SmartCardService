@@ -430,6 +430,11 @@ public abstract class Terminal implements ITerminal {
             rsp = internalTransmit(command);
         }
 
+        //don't display NullPointerException
+        if (rsp == null) {
+            throw new CardException("no response data");
+        }
+
         if (rsp.length >= 2) {
             int sw1 = rsp[rsp.length - 2] & 0xFF;
             int sw2 = rsp[rsp.length - 1] & 0xFF;
@@ -453,6 +458,7 @@ public abstract class Terminal implements ITerminal {
                     }
                 }
                 rsp = response;
+/*
             } else if (rsp.length == 2 && sw1 == 0x63 && sw2 == 0x10) {
                 byte[] getResponseCmd = new byte[] {
                         (byte)(command[0] & 0x03), (byte) 0xC0, 0x00, 0x00, 0x00
@@ -471,6 +477,7 @@ public abstract class Terminal implements ITerminal {
                     }
                 }
                 rsp = response;
+*/
             }
         }
         return rsp;
@@ -648,8 +655,7 @@ public abstract class Terminal implements ITerminal {
             SmartcardService.clearError(error);
             try {
                 if (!Terminal.this.isCardPresent()){
-                    SmartcardService.setError(error,new IOException("Secure Element is not presented."));
-                    return null;
+                                    throw new RemoteException ("Secure Element is not presented.");
                 }
             } catch (CardException e) {
                 SmartcardService.setError(error,e);

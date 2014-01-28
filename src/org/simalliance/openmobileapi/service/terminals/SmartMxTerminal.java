@@ -48,9 +48,17 @@ public class SmartMxTerminal extends Terminal {
         try {
             NfcAdapter adapter =  NfcAdapter.getDefaultAdapter(mContext);
             if(adapter == null) {
-                throw new CardException("Cannot get NFC Default Adapter");
+                //throw new CardException("Cannot get NFC Default Adapter");
+                return false;
+            } else {
+                if(adapter.isEnabled()) {
+                    ex = adapter.getNfcAdapterExtrasInterface();
+                    if(ex != null)  {
+                        return ex.isSeEnabled("org.simalliance.openmobileapi.service", 2);
+                    }
+                }
+                return false;
             }
-            return adapter.isEnabled();
         } catch (Exception e) {
             return false;
         }
