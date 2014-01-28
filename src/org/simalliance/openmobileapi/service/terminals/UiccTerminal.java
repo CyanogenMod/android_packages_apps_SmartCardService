@@ -39,6 +39,8 @@ import java.util.NoSuchElementException;
 
 public class UiccTerminal extends Terminal {
 
+        public static final String _TAG = "UiccTerminal";
+
     private ITelephony manager = null;
 
     private int[] channelId = new int[20];
@@ -61,7 +63,11 @@ public class UiccTerminal extends Terminal {
     public boolean isCardPresent() throws CardException {
         String prop = SystemProperties
                 .get(TelephonyProperties.PROPERTY_SIM_STATE);
-        if ("READY".equals(prop)) {
+
+                Log.i(_TAG, "isCardPresent(): PROPERTY_SIM_STATE=" + prop);
+
+                //if ("READY".equals(prop)) {
+                if (prop.startsWith("READY")) {
             return true;
         }
         return false;
@@ -134,11 +140,13 @@ public class UiccTerminal extends Terminal {
 
         int channelNumber = parseChannelNumber(command[0]);
 
+                Log.i(_TAG, "internalTransmit(): command=" + ByteArrayToString(command, 0));
         if (channelNumber == 0) {
 
             try {
                 String response = manager.transmitIccBasicChannel(cla, ins, p1,
                         p2, p3, data);
+                                Log.i(_TAG, "internalTransmit(): response=" + response);
                 return StringToByteArray(response);
             } catch (Exception ex) {
                 throw new CardException("transmit command failed");
@@ -151,10 +159,30 @@ public class UiccTerminal extends Terminal {
 
             try {
                 String response = manager.transmitIccLogicalChannel(cla, ins, channelId[channelNumber], p1, p2, p3, data);
+                                Log.i(_TAG, "internalTransmit(): response=" + response);
                 return StringToByteArray(response);
             } catch (Exception ex) {
                 throw new CardException("transmit command failed");
             }
+        }
+    }
+
+    /**
+     * Returns the ATR of the connected card or null if the ATR is not
+     * available.
+     *
+     * @return the ATR of the connected card or null if the ATR is not
+     *         available.
+     */
+    @Override
+    public byte[] getAtr() {
+        try {
+            byte[] atr = manager.getATR();
+            Log.i(_TAG, "getAtr(): atr = " + ByteArrayToString(atr, 0));
+            return atr;
+        } catch (Exception e) {
+            throw new IllegalStateException("internal error: getAtr() execution: "
+                    + e.getCause());
         }
     }
 
@@ -253,6 +281,22 @@ public class UiccTerminal extends Terminal {
                     }
                     throw new CardException("open channel failed");
                 }
+                                else{
+                                    byte[] getResponseCmd = new byte[] { 0x00, (byte) 0xC0, 0x00, 0x00, 0x00 };
+
+                                    if (i < 4) {
+                                        // b7 = 0 indicates the first interindustry class byte coding
+                                        getResponseCmd[0] = (byte) (i);
+                                    } else if (i < 20) {
+                                        // b7 = 1 indicates the further interindustry class byte coding
+                                        getResponseCmd[0] = (byte) (0x40 | (byte)(i - 4));
+                                    } else {
+                                        channelId[i] = 0;
+                                        throw new CardException( "Channel number index must be within [1..19]");
+                                    }
+                                    mSelectResponse = internalTransmit(getResponseCmd);
+                                }
+
                 return i;
             }
         throw new MissingResourceException("out of channels", "","");

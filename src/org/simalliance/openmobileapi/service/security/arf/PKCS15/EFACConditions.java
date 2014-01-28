@@ -119,17 +119,24 @@ public class EFACConditions extends EF {
             channelAccess.setUseApduFilter(false);
 
             if ( DER.parseTLV(ASN1.TAG_Sequence) > 0 ) {
-                DERParser derRule = new DERParser( DER.getTLVData());
-                derRule.parseTLV(ASN1.TAG_OctetString);
-                certificateHash=derRule.getTLVData();
+                    byte[] tempTLVData = DER.getTLVData();
+                    DERParser derRule = new DERParser( tempTLVData);
 
-                if (certificateHash.length!=Hash_REF_DO._SHA1_LEN &&
-                        certificateHash.length!=0) {
-                    // other hash than SHA-1 hash values are not supported.
-                    throw new PKCS15Exception("Invalid hash found!");
-                } else {
-                    hash_ref_do =new Hash_REF_DO(certificateHash);
-                }
+                    if (tempTLVData[0] == ASN1.TAG_OctetString) {
+                        derRule.parseTLV(ASN1.TAG_OctetString);
+                        certificateHash=derRule.getTLVData();
+
+                        if (certificateHash.length!=Hash_REF_DO._SHA1_LEN &&
+                            certificateHash.length!=0) {
+                            // other hash than SHA-1 hash values are not supported.
+                            throw new PKCS15Exception("Invalid hash found!");
+                        } else {
+                            hash_ref_do =new Hash_REF_DO(certificateHash);
+                        }
+                    }
+                    else {
+                        Log.v(TAG,"No hash included");
+                    }
 
                 // 2012-04-16
                 // parse optional Access Rule.
