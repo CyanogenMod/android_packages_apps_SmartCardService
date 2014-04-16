@@ -3,14 +3,14 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
+ * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -48,16 +48,16 @@ public class EFDIR extends EF{
         DER.parseTLV(ASN1.TAG_ApplTemplate);
         // Application Identifier
         DER.parseTLV(ASN1.TAG_ApplIdentifier);
-        if (!Arrays.equals(DER.getTLVData(),AID)) 
+        if (!Arrays.equals(DER.getTLVData(),AID))
             return null; // Record for another AID
 
         // Application Label or Application Path
         byte objectType=DER.parseTLV();
-        if (objectType==ASN1.TAG_ApplLabel) { 
+        if (objectType==ASN1.TAG_ApplLabel) {
             // Application Label [Optional]
             DER.getTLVData();
             DER.parseTLV(ASN1.TAG_ApplPath);
-        } else if (objectType!=ASN1.TAG_ApplPath) 
+        } else if (objectType!=ASN1.TAG_ApplPath)
                      throw new PKCS15Exception("[Parser] Application Tag expected");
         // Application Path
         return DER.getTLVData();
@@ -69,7 +69,7 @@ public class EFDIR extends EF{
      * @param secureElement SE on which ISO7816 commands are applied
      */
     public EFDIR(SecureElement handle) {
-    	super(handle);
+        super(handle);
     }
 
     /**
@@ -80,7 +80,7 @@ public class EFDIR extends EF{
      */
     public byte[] lookupAID(byte[] AID) throws PKCS15Exception,SecureElementException {
         Log.v(TAG,"Analysing EF_DIR...");
-        
+
         if (selectFile(EFDIR_PATH)!= APDU_SUCCESS)
             throw new PKCS15Exception("EF_DIR not found!!");
 
@@ -89,8 +89,8 @@ public class EFDIR extends EF{
         while(index<=getFileNbRecords()) {
             data=readRecord(index++);
             if ((ODFPath=decodeDER(data,AID))!=null)
-            	break;
-        } 
+                break;
+        }
         return ODFPath;
     }
 

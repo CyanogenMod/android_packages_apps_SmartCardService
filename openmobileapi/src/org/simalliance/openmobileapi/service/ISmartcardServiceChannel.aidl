@@ -32,19 +32,19 @@ interface ISmartcardServiceChannel {
 
     /**
      * Tells if this channel is closed.
-     * 
+     *
      * @return <code>true</code> if the channel is closed, <code>false</code> otherwise.
      */
     boolean isClosed();
 
     /**
      * Returns a boolean telling if this channel is the basic channel.
-     * 
+     *
      * @return <code>true</code> if this channel is a basic channel. <code>false</code> if
      *         this channel is a logical channel.
      */
     boolean isBasicChannel();
-    
+
      /**
      * Returns the data as received from the application select command inclusively the status word.
      * The returned byte array contains the data bytes in the following order:
@@ -54,7 +54,7 @@ interface ISmartcardServiceChannel {
 
     /**
      * Get the session that has opened this channel.
-     * 
+     *
      * @return the session object this channel is bound to.
      */
     ISmartcardServiceSession getSession();
@@ -67,16 +67,16 @@ interface ISmartcardServiceChannel {
     byte[] transmit(in byte[] command, out SmartcardError error);
 
     /**
-     * Performs a selection of the next Applet on this channel that matches to the partial AID specified   
-     * in the openBasicChannel(byte[] aid) or openLogicalChannel(byte[] aid) method.  
-     * This mechanism can be used by a device application to iterate through all Applets 
-     * matching to the same partial AID. 
-     * If selectNext() returns true a new Applet was successfully selected on this channel. 
+     * Performs a selection of the next Applet on this channel that matches to the partial AID specified
+     * in the openBasicChannel(byte[] aid) or openLogicalChannel(byte[] aid) method.
+     * This mechanism can be used by a device application to iterate through all Applets
+     * matching to the same partial AID.
+     * If selectNext() returns true a new Applet was successfully selected on this channel.
      * If no further Applet exists with matches to the partial AID this method returns false
      * and the already selected Applet stays selected.
      *
      * @return <code>true</code> if new Applet was successfully selected.
-               <code>false</code> if no further Applet exists which matches the partial AID. 
+               <code>false</code> if no further Applet exists which matches the partial AID.
      */
     boolean selectNext(out SmartcardError error);
 }

@@ -3,14 +3,14 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
+ * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -59,7 +59,7 @@ public class EFODF extends EF {
      * @param secureElement SE on which ISO7816 commands are applied
      */
     public EFODF(SecureElement handle) {
-    	super(handle);
+        super(handle);
     }
 
     /**
@@ -70,22 +70,22 @@ public class EFODF extends EF {
     public byte[] analyseFile( byte[] pkcs15Path )  throws PKCS15Exception,SecureElementException {
         Log.v(TAG,"Analysing EF_ODF...");
 
-        
+
         // 2012-04-12
         // extend path if ODF path was determined from EF DIR.
         byte[] path = null;
         if( pkcs15Path != null ){
-        	path = new byte[pkcs15Path.length + EFODF_PATH.length];
-        	System.arraycopy(pkcs15Path, 0, path, 0, pkcs15Path.length);
-        	System.arraycopy(EFODF_PATH, 0, path, pkcs15Path.length, EFODF_PATH.length );
+            path = new byte[pkcs15Path.length + EFODF_PATH.length];
+            System.arraycopy(pkcs15Path, 0, path, 0, pkcs15Path.length);
+            System.arraycopy(EFODF_PATH, 0, path, pkcs15Path.length, EFODF_PATH.length );
         } else {
-        	path = EFODF_PATH;
+            path = EFODF_PATH;
         }
         //---
-        
+
         if ( selectFile(path)!= APDU_SUCCESS)
             throw new PKCS15Exception("EF_ODF not found!!");
-        
+
         return decodeDER(readBinary(0,Util.END));
     }
 

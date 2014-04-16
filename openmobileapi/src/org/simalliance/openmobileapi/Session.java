@@ -34,25 +34,25 @@ import android.os.RemoteException;
  * elements available on the device. These objects can be used to get a
  * communication channel with an application in the secure element. This channel
  * can be the basic channel or a logical channel.
- * 
+ *
  * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v2.02</a>
  */
 public class Session {
 
-	private final Object mLock = new Object();
-	private final SEService mService;
+    private final Object mLock = new Object();
+    private final SEService mService;
     private final Reader mReader;
     private final ISmartcardServiceSession mSession;
 
     Session(SEService service, ISmartcardServiceSession session, Reader reader) {
-    	mService = service;
+        mService = service;
         mReader = reader;
         mSession = session;
     }
 
     /**
      * Get the reader that provides this session.
-     * 
+     *
      * @return The Reader object.
      */
     public Reader getReader() {
@@ -63,21 +63,21 @@ public class Session {
      * Get the Answer to Reset of this Secure Element. <br>
      * The returned byte array can be null if the ATR for this Secure Element
      * is not available.
-     * 
+     *
      * @return the ATR as a byte array or null.
      */
     public byte[] getATR() {
         if (mService == null || mService.isConnected() == false) {
             throw new IllegalStateException("service not connected to system");
         }
-    	if( mSession == null ){
+        if( mSession == null ){
             throw new NullPointerException("service session is null");
-    	}
+        }
         try {
-			return mSession.getAtr();
-		} catch (Exception e) {
-			return null;
-		}
+            return mSession.getAtr();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -89,37 +89,37 @@ public class Session {
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession != null ){
-	        synchronized (mLock) {
-	        	SmartcardError error = new SmartcardError();
-	            try {
-					mSession.close(error);
-				} catch (RemoteException e) {
-					throw new RuntimeException(e.getMessage());
-				}
-	            SEService.checkForException(error);
-	        }
+            synchronized (mLock) {
+                SmartcardError error = new SmartcardError();
+                try {
+                    mSession.close(error);
+                } catch (RemoteException e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+                SEService.checkForException(error);
+            }
         }
     }
 
     /**
      * Tells if this session is closed.
-     * 
+     *
      * @return <code>true</code> if the session is closed, false otherwise.
      */
     public boolean isClosed() {
         try {
-        	if( mSession == null ){
-        		return true;
-        	}
-			return mSession.isClosed();
-		} catch (RemoteException e) {
-			throw new RuntimeException(e.getMessage());
-		}
+            if( mSession == null ){
+                return true;
+            }
+            return mSession.isClosed();
+        } catch (RemoteException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
     /**
      * Close any channel opened on this session.
-     * @throws IOException 
+     * @throws IOException
      */
     public void closeChannels() {
 
@@ -128,19 +128,19 @@ public class Session {
         }
 
         if( mSession != null ){
-	        synchronized (mLock) {
-	        	SmartcardError error = new SmartcardError();
-	            try {
-					mSession.closeChannels(error);
-				} catch (RemoteException e) {
-					throw new RuntimeException(e.getMessage());
-				}
-	            SEService.checkForException(error);
-	        }
+            synchronized (mLock) {
+                SmartcardError error = new SmartcardError();
+                try {
+                    mSession.closeChannels(error);
+                } catch (RemoteException e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+                SEService.checkForException(error);
+            }
         }
     }
-    
-    
+
+
     /**
      * Get an access to the basic channel, as defined in the ISO/IEC 7816-4 specification (the one that has
      * number 0). The obtained object is an instance of the Channel class.
@@ -160,7 +160,7 @@ public class Session {
      * possible, then openBasicChannel(null) should always return null and therefore prevent access to the
      * default Applet on the basic channel.
      * <p>
-     * 
+     *
      * The optional select response data of an applet can be retrieved with byte[] getSelectResponse().
      *
      * @param aid the AID of the Applet to be selected on this channel, as a byte array, or null if no Applet is to be
@@ -172,7 +172,7 @@ public class Session {
      * @throws SecurityException if the calling application cannot be granted
      *             access to this AID or the default application on this
      *             session.
-     * 
+     *
      * @throws NoSuchElementException if an Applet with the defined AID does not exist in the SE
      *
      * @return an instance of Channel if available or null.
@@ -183,19 +183,19 @@ public class Session {
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession == null ){
-    		throw new NullPointerException("service session is null");
-    	}
+            throw new NullPointerException("service session is null");
+        }
         if (getReader() == null) {
             throw new NullPointerException("reader must not be null");
         }
-    	
+
         synchronized (mLock) {
             ISmartcardServiceChannel channel;
             SmartcardError error = new SmartcardError();
             try {
                 channel = mSession.openBasicChannelAid(
-                		aid,
-                        mService.getCallback(), 
+                        aid,
+                        mService.getCallback(),
                         error);
             } catch (Exception e) {
                 throw new IOException(e.getMessage());
@@ -205,10 +205,10 @@ public class Session {
             boolean b = basicChannelInUse(error);
             SEService.checkForException(error);
             if ( b ) {
-            	return null;
+                return null;
             }
             error.clear();
-            b = channelCannotBeEstablished(error);            
+            b = channelCannotBeEstablished(error);
             SEService.checkForException(error);
             if (b) {
                 return null;
@@ -218,16 +218,16 @@ public class Session {
                 error.clear();
                 b = isDefaultApplicationSelected(error);
                 SEService.checkForException(error);
-    	        if (!b) {
-    	            return null;
-    	        }
+                if (!b) {
+                    return null;
+                }
             }
             error.clear();
             checkIfAppletAvailable(error);
             SEService.checkForException(error);
 
             if (channel == null)
-        	   return null;
+               return null;
 
             return new Channel(mService, this, channel );
         }
@@ -238,7 +238,7 @@ public class Session {
      * represented by the given AID. The AID can be null, which means no
      * Applet is to be selected on this channel, the default Applet is
      * used. It's up to the Secure Element to choose which logical channel will
-     * be used. 
+     * be used.
      * <p>
      * The optional select response data of an applet can be retrieved with byte[] getSelectResponse().
      * <p>
@@ -247,7 +247,7 @@ public class Session {
      * @param aid the AID of the Applet to be selected on this channel, as
      *            a byte array.
      * @throws IOException if there is a communication problem to the reader or the Secure Element. (e.g. if the SE is
-	 *	not responding)
+     *    not responding)
      * @throws IllegalStateException if the Secure Element is used after being
      *             closed.
      * @throws IllegalArgumentException if the aid's length is not within 5 to
@@ -256,7 +256,7 @@ public class Session {
      *             access to this AID or the default application on this
      *             session.
      * @throws NoSuchElementException if an Applet with the defined AID does not exist in the SE or a logical channel is already open to a non-multiselectable applet
-     * 
+     *
      * @return an instance of Channel. Null if the Secure Element is unable to
      *         provide a new logical channel.
      */
@@ -266,8 +266,8 @@ public class Session {
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession == null ){
-    		throw new NullPointerException("service session is null");
-    	}
+            throw new NullPointerException("service session is null");
+        }
         if (getReader() == null) {
             throw new NullPointerException("reader must not be null");
         }
@@ -276,7 +276,7 @@ public class Session {
             ISmartcardServiceChannel channel;
             try {
                 channel = mSession.openLogicalChannel(
-                		aid,
+                        aid,
                         mService.getCallback(),
                         error);
             } catch (Exception e) {
@@ -318,7 +318,7 @@ public class Session {
         }
         return true;
     }
-    
+
     private boolean basicChannelInUse(SmartcardError error) {
         Exception exp = error.createException();
         if (exp != null) {
@@ -356,15 +356,15 @@ public class Session {
         }
         return false;
     }
-    
+
     private void checkIfAppletAvailable(SmartcardError error) throws NoSuchElementException {
         Exception exp = error.createException();
         if (exp != null) {
-	    	if(exp instanceof NoSuchElementException) {
-	    		throw new NoSuchElementException("Applet with the defined aid does not exist in the SE");
-	    	}
+            if(exp instanceof NoSuchElementException) {
+                throw new NoSuchElementException("Applet with the defined aid does not exist in the SE");
+            }
         }
     }
-    
-    
+
+
 }

@@ -17,32 +17,32 @@ package org.simalliance.openmobileapi.service.security.gpac.dataobjects;
 
 public class DO_Exception extends Exception {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3917637590082486538L;
+    /**
+     *
+     */
+    private static final long serialVersionUID = -3917637590082486538L;
 
-	public DO_Exception() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
+    public DO_Exception() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
 
 
-	public DO_Exception(String arg0, Throwable arg1) {
-		super(arg0, arg1);
-		// TODO Auto-generated constructor stub
-	}
+    public DO_Exception(String arg0, Throwable arg1) {
+        super(arg0, arg1);
+        // TODO Auto-generated constructor stub
+    }
 
-	public DO_Exception(String arg0) {
-		super(arg0);
-		// TODO Auto-generated constructor stub
-	}
+    public DO_Exception(String arg0) {
+        super(arg0);
+        // TODO Auto-generated constructor stub
+    }
 
-	public DO_Exception(Throwable arg0) {
-		super(arg0);
-		// TODO Auto-generated constructor stub
-	}
+    public DO_Exception(Throwable arg0) {
+        super(arg0);
+        // TODO Auto-generated constructor stub
+    }
 
-	
-	
+
+
 }

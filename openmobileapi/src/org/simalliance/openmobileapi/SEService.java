@@ -40,13 +40,13 @@ import android.util.Log;
  * The SEService realises the communication to available Secure Elements on the
  * device. This is the entry point of this API. It is used to connect to the
  * infrastructure and get access to a list of Secure Element Readers.
- * 
+ *
  * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v2.02</a>
  */
 public class SEService {
 
     private static final String SERVICE_TAG = "SEService";
-    
+
     private final Object mLock = new Object();
 
     /** The client context (e.g. activity). */
@@ -59,7 +59,7 @@ public class SEService {
      * Class for interacting with the main interface of the backend.
      */
     private ServiceConnection mConnection;
-    
+
     /**
      * Collection of available readers
      */
@@ -86,7 +86,7 @@ public class SEService {
 
         /**
          * Called by the framework when the service is connected.
-         * 
+         *
          * @param service the connected service.
          */
         void serviceConnected(SEService service);
@@ -100,7 +100,7 @@ public class SEService {
      * <code>true</code>. <br>
      * The call-back object passed as a parameter will have its
      * serviceConnected() method called when the connection actually happen.
-     * 
+     *
      * @param context the context of the calling application. Cannot be
      *            <code>null</code>.
      * @param listener a SEService.CallBack object. Can be <code>null</code>.
@@ -110,7 +110,7 @@ public class SEService {
         if (context == null) {
             throw new NullPointerException("context must not be null");
         }
-        
+
         mContext = context;
         mCallerCallback = listener;
 
@@ -140,7 +140,7 @@ public class SEService {
 
     /**
      * Tells whether or not the service is connected.
-     * 
+     *
      * @return <code>true</code> if the service is connected.
      */
     public boolean isConnected() {
@@ -154,7 +154,7 @@ public class SEService {
      * Returns the list of available Secure Element readers. More precisely it
      * returns the list of readers that the calling application has the
      * permission to connect to.
-     * 
+     *
      * @return The readers list, as an array of Readers. If there are no readers the returned array is of length 0.
      */
     public Reader[] getReaders() {
@@ -172,7 +172,7 @@ public class SEService {
 
         mReaders.clear();
         for (String readerName : readerNames) {
-			mReaders.put(readerName, new Reader( this, readerName ));
+            mReaders.put(readerName, new Reader( this, readerName ));
         }
         Collection<Reader> col = mReaders.values();
         return col.toArray(new Reader[col.size()]);
@@ -188,11 +188,11 @@ public class SEService {
     public void shutdown() {
         synchronized (mLock) {
             if (mSmartcardService != null ) {
-            	Collection<Reader> col = mReaders.values();
-            	Iterator<Reader> iter = col.iterator();
-            	while( iter.hasNext() ) { 
+                Collection<Reader> col = mReaders.values();
+                Iterator<Reader> iter = col.iterator();
+                while( iter.hasNext() ) {
                     try {
-                    	Reader reader = iter.next();
+                        Reader reader = iter.next();
                         reader.closeSessions();
                     } catch (Exception ignore) {
                     }
@@ -211,16 +211,16 @@ public class SEService {
     // ******************************************************************
     // package private methods
     // ******************************************************************
-    
+
     ISmartcardServiceReader getReader( String name ){
-    	
+
         SmartcardError error = new SmartcardError();
         ISmartcardServiceReader reader = null;
         try {
-        	 reader = mSmartcardService.getReader(name, error);
-		} catch (RemoteException e) {
-			throw new RuntimeException(e.getMessage());
-		}
+             reader = mSmartcardService.getReader(name, error);
+        } catch (RemoteException e) {
+            throw new RuntimeException(e.getMessage());
+        }
         checkForException(error);
         return reader;
     }
@@ -236,6 +236,6 @@ public class SEService {
     }
 
     ISmartcardServiceCallback getCallback() {
-		return mCallback;
-	}
+        return mCallback;
+    }
 }

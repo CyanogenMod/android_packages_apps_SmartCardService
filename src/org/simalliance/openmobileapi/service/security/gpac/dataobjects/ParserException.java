@@ -17,32 +17,32 @@ package org.simalliance.openmobileapi.service.security.gpac.dataobjects;
 
 public class ParserException extends Exception {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3917637590082486538L;
+    /**
+     *
+     */
+    private static final long serialVersionUID = -3917637590082486538L;
 
-	public ParserException() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
+    public ParserException() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
 
 
-	public ParserException(String arg0, Throwable arg1) {
-		super(arg0, arg1);
-		// TODO Auto-generated constructor stub
-	}
+    public ParserException(String arg0, Throwable arg1) {
+        super(arg0, arg1);
+        // TODO Auto-generated constructor stub
+    }
 
-	public ParserException(String arg0) {
-		super(arg0);
-		// TODO Auto-generated constructor stub
-	}
+    public ParserException(String arg0) {
+        super(arg0);
+        // TODO Auto-generated constructor stub
+    }
 
-	public ParserException(Throwable arg0) {
-		super(arg0);
-		// TODO Auto-generated constructor stub
-	}
+    public ParserException(Throwable arg0) {
+        super(arg0);
+        // TODO Auto-generated constructor stub
+    }
 
-	
-	
+
+
 }

@@ -40,7 +40,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.os.RemoteException; 
+import android.os.RemoteException;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
@@ -82,7 +82,7 @@ public final class SmartcardService extends Service {
     public static final String _UICC_TERMINAL = "SIM";
     public static final String _eSE_TERMINAL = "eSE";
     public static final String _SD_TERMINAL = "SD";
-    
+
     static void clearError(SmartcardError error) {
         if (error != null) {
             error.clear();
@@ -118,7 +118,7 @@ public final class SmartcardService extends Service {
     private BroadcastReceiver mSimReceiver;
     private BroadcastReceiver mNfcReceiver;
     private BroadcastReceiver mMediaReceiver;
-    
+
     /* Async task */
     InitialiseTask mInitialiseTask;
 
@@ -126,12 +126,12 @@ public final class SmartcardService extends Service {
      * ServiceHandler use to load rules from the terminal
      */
     private ServiceHandler mServiceHandler;
-    
-    
+
+
     public SmartcardService() {
         super();
     }
-    
+
     @Override
     public IBinder onBind(Intent intent) {
         Log.v(_TAG, Thread.currentThread().getName()
@@ -146,7 +146,7 @@ public final class SmartcardService extends Service {
     public void onCreate() {
         Log.v(_TAG, Thread.currentThread().getName()
                 + " smartcard service onCreate");
-        
+
         // Start up the thread running the service.  Note that we create a
         // separate thread because the service normally runs in the process's
         // main thread, which we don't want to block.  We also make it
@@ -156,7 +156,7 @@ public final class SmartcardService extends Service {
 
         // Get the HandlerThread's Looper and use it for our Handler
         mServiceHandler = new ServiceHandler(thread.getLooper());
-        
+
         createTerminals();
         mInitialiseTask = new InitialiseTask();
         mInitialiseTask.execute();
@@ -193,8 +193,8 @@ public final class SmartcardService extends Service {
             }
         }
     }
-        
-    
+
+
     private class InitialiseTask extends AsyncTask<Void, Void, Void> {
 
         @Override
@@ -207,9 +207,9 @@ public final class SmartcardService extends Service {
         protected Void doInBackground(Void... arg0) {
 
             try {
-            	initializeAccessControl(null, null);
+                initializeAccessControl(null, null);
             } catch( Exception e ){
-            	// do nothing since this is called were nobody can react.
+                // do nothing since this is called were nobody can react.
             }
             return null;
         }
@@ -223,16 +223,16 @@ public final class SmartcardService extends Service {
             registerMediaMountedEvent(getApplicationContext());
             mInitialiseTask = null;
         }
-    }    
-    
+    }
+
     private void registerSimStateChangedEvent(Context context) {
         Log.v(_TAG, "register SIM_STATE_CHANGED event");
 
         IntentFilter intentFilter = new IntentFilter("android.intent.action.SIM_STATE_CHANGED");
         mSimReceiver = new BroadcastReceiver() {
-    		@Override
-    		public void onReceive(Context context, Intent intent) {
-    			if("android.intent.action.SIM_STATE_CHANGED".equals(intent.getAction())) {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if("android.intent.action.SIM_STATE_CHANGED".equals(intent.getAction())) {
                     final Bundle  extras    = intent.getExtras();
                     final boolean simReady  = (extras != null) && "READY".equals(extras.getString("ss"));
                     final boolean simLoaded = (extras != null) && "LOADED".equals(extras.getString("ss"));
@@ -244,64 +244,64 @@ public final class SmartcardService extends Service {
                         Log.i(_TAG, "SIM is loaded. Checking access rules for updates.");
                         mServiceHandler.sendMessage(MSG_LOAD_UICC_RULES, 5);
                     }
-    			}
-			}
+                }
+            }
         };
-        
+
         context.registerReceiver(mSimReceiver, intentFilter);
-    }    
+    }
     private void unregisterSimStateChangedEvent(Context context) {
-    	if(mSimReceiver!= null) {
+        if(mSimReceiver!= null) {
             Log.v(_TAG, "unregister SIM_STATE_CHANGED event");
             context.unregisterReceiver(mSimReceiver);
             mSimReceiver = null;
         }
     }
-    
+
 
     private void registerAdapterStateChangedEvent(Context context) {
         Log.v(_TAG, "register ADAPTER_STATE_CHANGED event");
 
         IntentFilter intentFilter = new IntentFilter("android.nfc.action.ADAPTER_STATE_CHANGED");
         mNfcReceiver = new BroadcastReceiver() {
-    		@Override
-    		public void onReceive(Context context, Intent intent) {
-    		    final boolean nfcAdapterAction = intent.getAction().equals("android.nfc.action.ADAPTER_STATE_CHANGED");
-    		    final boolean nfcAdapterOn = nfcAdapterAction && intent.getIntExtra("android.nfc.extra.ADAPTER_STATE", 1) == 3; // is NFC Adapter turned on ?		
-    		    if( nfcAdapterOn){
-    		    	Log.i(_TAG, "NFC Adapter is ON. Checking access rules for updates.");
-    		    	mServiceHandler.sendMessage(MSG_LOAD_ESE_RULES, 5);
-		    	}
-    		}
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final boolean nfcAdapterAction = intent.getAction().equals("android.nfc.action.ADAPTER_STATE_CHANGED");
+                final boolean nfcAdapterOn = nfcAdapterAction && intent.getIntExtra("android.nfc.extra.ADAPTER_STATE", 1) == 3; // is NFC Adapter turned on ?
+                if( nfcAdapterOn){
+                    Log.i(_TAG, "NFC Adapter is ON. Checking access rules for updates.");
+                    mServiceHandler.sendMessage(MSG_LOAD_ESE_RULES, 5);
+                }
+            }
         };
         context.registerReceiver(mNfcReceiver, intentFilter);
-    }    
-    
+    }
+
     private void unregisterAdapterStateChangedEvent(Context context) {
         if(mNfcReceiver!= null) {
             Log.v(_TAG, "unregister ADAPTER_STATE_CHANGED event");
             context.unregisterReceiver(mNfcReceiver);
             mNfcReceiver = null;
         }
-     }    
-    
+     }
+
     private void registerMediaMountedEvent(Context context) {
         Log.v(_TAG, "register MEDIA_MOUNTED event");
 
         IntentFilter intentFilter = new IntentFilter("android.intent.action.MEDIA_MOUNTED");
         mMediaReceiver = new BroadcastReceiver() {
-    		@Override
-    		public void onReceive(Context context, Intent intent) {
-    		    final boolean mediaMounted = intent.getAction().equals("android.intent.action.MEDIA_MOUNTED");
-    		    if( mediaMounted){
-    		    	Log.i(_TAG, "New Media is mounted. Checking access rules for updates.");
-    		    	 mServiceHandler.sendMessage(MSG_LOAD_SD_RULES, 5);
-		    	 }
-    		}
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final boolean mediaMounted = intent.getAction().equals("android.intent.action.MEDIA_MOUNTED");
+                if( mediaMounted){
+                    Log.i(_TAG, "New Media is mounted. Checking access rules for updates.");
+                     mServiceHandler.sendMessage(MSG_LOAD_SD_RULES, 5);
+                 }
+            }
         };
         context.registerReceiver(mMediaReceiver, intentFilter);
-    }    
-    
+    }
+
     private void unregisterMediaMountedEvent(Context context) {
         if(mMediaReceiver != null) {
             Log.v(_TAG, "unregister MEDIA_MOUNTED event");
@@ -309,84 +309,84 @@ public final class SmartcardService extends Service {
             mMediaReceiver = null;
         }
      }
-    
+
     /**
      * Initalizes Access Control.
      * At least the refresh tag is read and if it differs to the previous one (e.g. is null) the all
      * access rules are read.
-     * 
+     *
      * @param se
      */
     public boolean initializeAccessControl(String se, ISmartcardServiceCallback callback ) {
-    	return initializeAccessControl(false, se, callback);
-	}
-	
-	public synchronized boolean initializeAccessControl(boolean reset, String se, ISmartcardServiceCallback callback ) {
-		boolean result = true;
-    	Log.i(_TAG, "Initializing Access Control");
-    	
-    	if( callback == null ) {
-    		callback = new ISmartcardServiceCallback.Stub(){};
-    	}
+        return initializeAccessControl(false, se, callback);
+    }
+
+    public synchronized boolean initializeAccessControl(boolean reset, String se, ISmartcardServiceCallback callback ) {
+        boolean result = true;
+        Log.i(_TAG, "Initializing Access Control");
+
+        if( callback == null ) {
+            callback = new ISmartcardServiceCallback.Stub(){};
+        }
 
         Collection<ITerminal>col = mTerminals.values();
         Iterator<ITerminal> iter = col.iterator();
         while(iter.hasNext()){
-        	ITerminal terminal = iter.next();
-        	if( terminal == null ){
+            ITerminal terminal = iter.next();
+            if( terminal == null ){
 
-        		continue;
-        	}
+                continue;
+            }
 
-        		if( se == null || terminal.getName().startsWith(se)) {
-        			boolean isCardPresent = false;
-                	try {
-                		isCardPresent = terminal.isCardPresent();
-        			} catch (CardException e) {
-        				isCardPresent = false;
+                if( se == null || terminal.getName().startsWith(se)) {
+                    boolean isCardPresent = false;
+                    try {
+                        isCardPresent = terminal.isCardPresent();
+                    } catch (CardException e) {
+                        isCardPresent = false;
 
-					}
+                    }
 
-                	if(isCardPresent) {
-				    	Log.i(_TAG, "Initializing Access Control for " + terminal.getName());
-				    	if(reset) terminal.resetAccessControl();
-				    	result &= terminal.initializeAccessControl(true, callback);
-        			} else {
-    			    	Log.i(_TAG, "NOT initializing Access Control for " + terminal.getName() + " SE not present.");
-        			}
-        		}
+                    if(isCardPresent) {
+                        Log.i(_TAG, "Initializing Access Control for " + terminal.getName());
+                        if(reset) terminal.resetAccessControl();
+                        result &= terminal.initializeAccessControl(true, callback);
+                    } else {
+                        Log.i(_TAG, "NOT initializing Access Control for " + terminal.getName() + " SE not present.");
+                    }
+                }
         }
         col = this.mAddOnTerminals.values();
         iter = col.iterator();
         while(iter.hasNext()){
-        	ITerminal terminal = iter.next();
-        	if( terminal == null ){
+            ITerminal terminal = iter.next();
+            if( terminal == null ){
 
-        		continue;
-        	}
+                continue;
+            }
 
-    		if( se == null || terminal.getName().startsWith(se)) {
-    			boolean isCardPresent = false;
-            	try {
-            		isCardPresent = terminal.isCardPresent();
-    			} catch (CardException e) {
-    				isCardPresent = false;
+            if( se == null || terminal.getName().startsWith(se)) {
+                boolean isCardPresent = false;
+                try {
+                    isCardPresent = terminal.isCardPresent();
+                } catch (CardException e) {
+                    isCardPresent = false;
 
-				}
+                }
 
-            	if(isCardPresent) {
-			    	Log.i(_TAG, "Initializing Access Control for " + terminal.getName());
-			    	if(reset) terminal.resetAccessControl();
-			    	result &= terminal.initializeAccessControl(true, callback);
-    			} else {
-			    	Log.i(_TAG, "NOT initializing Access Control for " + terminal.getName() + " SE not present.");
-    			}
-    		}
+                if(isCardPresent) {
+                    Log.i(_TAG, "Initializing Access Control for " + terminal.getName());
+                    if(reset) terminal.resetAccessControl();
+                    result &= terminal.initializeAccessControl(true, callback);
+                } else {
+                    Log.i(_TAG, "NOT initializing Access Control for " + terminal.getName() + " SE not present.");
+                }
+            }
         }
         return result;
-	}
+    }
 
-	public void onDestroy() {
+    public void onDestroy() {
         Log.v(_TAG, " smartcard service onDestroy ...");
         for (ITerminal terminal : mTerminals.values())
             terminal.closeChannels();
@@ -401,15 +401,15 @@ public final class SmartcardService extends Service {
         unregisterSimStateChangedEvent(getApplicationContext()) ;
         unregisterAdapterStateChangedEvent(getApplicationContext());
         unregisterMediaMountedEvent(getApplicationContext());
-        
-        mServiceHandler = null;        
-        
+
+        mServiceHandler = null;
+
         Log.v(_TAG, Thread.currentThread().getName()
                 + " ... smartcard service onDestroy");
 
-	}
+    }
 
-	private ITerminal getTerminal(String reader, SmartcardError error) {
+    private ITerminal getTerminal(String reader, SmartcardError error) {
         if (reader == null) {
             setError(error, NullPointerException.class, "reader must not be null");
             return null;
@@ -430,10 +430,10 @@ public final class SmartcardService extends Service {
         Set<String> names = mTerminals.keySet();
         ArrayList<String> list = new ArrayList<String>(names);
         Collections.sort(list);
-        
+
         // set UICC on the top
-        if(list.remove(_UICC_TERMINAL + " - UICC")) 
-        	list.add(0, _UICC_TERMINAL + " - UICC");
+        if(list.remove(_UICC_TERMINAL + " - UICC"))
+            list.add(0, _UICC_TERMINAL + " - UICC");
 
         createAddonTerminals();
         names = mAddOnTerminals.keySet();
@@ -442,7 +442,7 @@ public final class SmartcardService extends Service {
                 list.add(name);
             }
         }
-        
+
         return list.toArray(new String[list.size()]);
     }
 
@@ -450,11 +450,11 @@ public final class SmartcardService extends Service {
         Set<String> names = mTerminals.keySet();
         ArrayList<String> list = new ArrayList<String>(names);
         Collections.sort(list);
-        
+
         // set UICC on the top
-        if(list.remove(_UICC_TERMINAL + " - UICC")) 
-        	list.add(0, _UICC_TERMINAL + " - UICC");
-        
+        if(list.remove(_UICC_TERMINAL + " - UICC"))
+            list.add(0, _UICC_TERMINAL + " - UICC");
+
         updateAddonTerminals();
         names = mAddOnTerminals.keySet();
         for (String name : names) {
@@ -462,12 +462,12 @@ public final class SmartcardService extends Service {
                 list.add(name);
             }
         }
-        
+
         return list.toArray(new String[list.size()]);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-	private void createBuildinTerminals() {
+    private void createBuildinTerminals() {
         Class[] types = new Class[] {
             Context.class
         };
@@ -555,7 +555,7 @@ public final class SmartcardService extends Service {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-	private Object[] getBuildinTerminalClasses() {
+    private Object[] getBuildinTerminalClasses() {
         ArrayList classes = new ArrayList();
         try {
             String packageName = "org.simalliance.openmobileapi.service";
@@ -607,42 +607,42 @@ public final class SmartcardService extends Service {
        }
        throw new AccessControlException("Caller PackageName can not be determined");
     }
-    
+
     /**
      * The smartcard service interface implementation.
      */
     private final ISmartcardService.Stub mSmartcardBinder = new ISmartcardService.Stub() {
 
-		@Override
+        @Override
         public String[] getReaders(SmartcardError error) throws RemoteException {
             clearError(error);
-            Log.v(_TAG, "getReaders()"); 
+            Log.v(_TAG, "getReaders()");
             return updateTerminals();
         }
-        
-		@Override
-		public ISmartcardServiceReader getReader(String reader,
-				SmartcardError error) throws RemoteException {
-        	clearError(error);
-			Terminal terminal = (Terminal)getTerminal(reader, error);
-			if( terminal != null ){
-				return terminal.new SmartcardServiceReader(SmartcardService.this);
-			}
-            setError(error, IllegalArgumentException.class, "invalid reader name");
-			return null;
-		}		
-        
 
-		@Override
+        @Override
+        public ISmartcardServiceReader getReader(String reader,
+                SmartcardError error) throws RemoteException {
+            clearError(error);
+            Terminal terminal = (Terminal)getTerminal(reader, error);
+            if( terminal != null ){
+                return terminal.new SmartcardServiceReader(SmartcardService.this);
+            }
+            setError(error, IllegalArgumentException.class, "invalid reader name");
+            return null;
+        }
+
+
+        @Override
         public synchronized boolean[] isNFCEventAllowed(
-        		String reader, 
-        		byte[] aid,
-                String[] packageNames, 
-                ISmartcardServiceCallback callback, 
-                SmartcardError error) 
-                		throws RemoteException
+                String reader,
+                byte[] aid,
+                String[] packageNames,
+                ISmartcardServiceCallback callback,
+                SmartcardError error)
+                        throws RemoteException
         {
-        	clearError(error);
+            clearError(error);
             try
             {
                 if (callback == null) {
@@ -668,13 +668,13 @@ public final class SmartcardService extends Service {
                 }
                 AccessControlEnforcer ac = null;
                 if( terminal.getAccessControlEnforcer() == null ) {
-                	ac = new AccessControlEnforcer( terminal );
+                    ac = new AccessControlEnforcer( terminal );
                 } else {
-                	ac = terminal.getAccessControlEnforcer();
+                    ac = terminal.getAccessControlEnforcer();
                 }
-	            ac.setPackageManager(getPackageManager());
-	            ac.initialize(true, callback);
-	            return ac.isNFCEventAllowed(aid, packageNames, callback );
+                ac.setPackageManager(getPackageManager());
+                ac.initialize(true, callback);
+                return ac.isNFCEventAllowed(aid, packageNames, callback );
             } catch (Exception e) {
                 setError(error, e);
                 Log.v(_TAG, "isNFCEventAllowed Exception: " + e.getMessage() );
@@ -688,88 +688,88 @@ public final class SmartcardService extends Service {
      */
     final class SmartcardServiceSession extends ISmartcardServiceSession.Stub {
 
-    	private final SmartcardServiceReader mReader;
+        private final SmartcardServiceReader mReader;
         /** List of open channels in use of by this client. */
         private final Set<Channel> mChannels = new HashSet<Channel>();
-        
+
         private final Object mLock = new Object();
 
         private boolean mIsClosed;
 
         private byte[] mAtr;
-    	
-    	public SmartcardServiceSession(SmartcardServiceReader reader){
-    		mReader = reader;
-    		mAtr = mReader.getAtr();
-    		mIsClosed = false;
-    	}
-    	
-		@Override
-		public ISmartcardServiceReader getReader() throws RemoteException {
-			return mReader;
-		}
 
-		@Override
-		public byte[] getAtr() throws RemoteException {
-			return mAtr;
+        public SmartcardServiceSession(SmartcardServiceReader reader){
+            mReader = reader;
+            mAtr = mReader.getAtr();
+            mIsClosed = false;
         }
 
-		@Override
-		public void close(SmartcardError error) throws RemoteException {
+        @Override
+        public ISmartcardServiceReader getReader() throws RemoteException {
+            return mReader;
+        }
+
+        @Override
+        public byte[] getAtr() throws RemoteException {
+            return mAtr;
+        }
+
+        @Override
+        public void close(SmartcardError error) throws RemoteException {
             clearError(error);
             if (mReader == null) {
                 return;
             }
             try {
-				mReader.closeSession(this);
-			} catch (CardException e) {
-				setError(error,e);
-			}
-		}
+                mReader.closeSession(this);
+            } catch (CardException e) {
+                setError(error,e);
+            }
+        }
 
-		@Override
-		public void closeChannels(SmartcardError error) throws RemoteException {
-	        synchronized (mLock) {
+        @Override
+        public void closeChannels(SmartcardError error) throws RemoteException {
+            synchronized (mLock) {
 
-	        	Iterator<Channel>iter = mChannels.iterator();
-	        	try {
-		            while(iter.hasNext()) {
-		            	Channel channel = iter.next();
-		                if (channel != null && !channel.isClosed()) {
-		                    try {
-		                        channel.close();
-		                        // close changes indirectly mChannels, so we need a new iterator.
-		                        iter = mChannels.iterator();
-		                    } catch (Exception ignore) {
-		    	    	        Log.e(_TAG, "ServiceSession channel - close Exception " + ignore.getMessage());
-		                    }
-		                    channel.setClosed();
-		                }
-		            }
-		            mChannels.clear();
-	        	} catch( Exception e ) {
-	    	        Log.e(_TAG, "ServiceSession closeChannels Exception " + e.getMessage());
-	        	}
-	        }
-		}
+                Iterator<Channel>iter = mChannels.iterator();
+                try {
+                    while(iter.hasNext()) {
+                        Channel channel = iter.next();
+                        if (channel != null && !channel.isClosed()) {
+                            try {
+                                channel.close();
+                                // close changes indirectly mChannels, so we need a new iterator.
+                                iter = mChannels.iterator();
+                            } catch (Exception ignore) {
+                                Log.e(_TAG, "ServiceSession channel - close Exception " + ignore.getMessage());
+                            }
+                            channel.setClosed();
+                        }
+                    }
+                    mChannels.clear();
+                } catch( Exception e ) {
+                    Log.e(_TAG, "ServiceSession closeChannels Exception " + e.getMessage());
+                }
+            }
+        }
 
-		@Override
-		public boolean isClosed() throws RemoteException {
+        @Override
+        public boolean isClosed() throws RemoteException {
 
-			return mIsClosed;
-		}
+            return mIsClosed;
+        }
 
-		@Override
-		public ISmartcardServiceChannel openBasicChannel(
-				ISmartcardServiceCallback callback, SmartcardError error)
-				throws RemoteException {
+        @Override
+        public ISmartcardServiceChannel openBasicChannel(
+                ISmartcardServiceCallback callback, SmartcardError error)
+                throws RemoteException {
             return openBasicChannelAid( null, callback, error);
-		}
+        }
 
-		@Override
-		public ISmartcardServiceChannel openBasicChannelAid(byte[] aid,
-				ISmartcardServiceCallback callback, SmartcardError error)
-				throws RemoteException {
+        @Override
+        public ISmartcardServiceChannel openBasicChannelAid(byte[] aid,
+                ISmartcardServiceCallback callback, SmartcardError error)
+                throws RemoteException {
             clearError(error);
             if ( isClosed() ) {
                 setError( error, IllegalStateException.class, "session is closed");
@@ -800,12 +800,12 @@ public final class SmartcardService extends Service {
                 String packageName = getPackageNameFromCallingUid( Binder.getCallingUid());
                 Log.v(_TAG, "Enable access control on basic channel for " + packageName);
                 ChannelAccess channelAccess = mReader.getTerminal().setUpChannelAccess(
-                		getPackageManager(), 
-                		aid,
-                		packageName, 
+                        getPackageManager(),
+                        aid,
+                        packageName,
                         callback );
                 Log.v(_TAG, "Access control successfully enabled.");
-                
+
                 channelAccess.setCallingPid(Binder.getCallingPid());
 
 
@@ -821,22 +821,22 @@ public final class SmartcardService extends Service {
                 channel.setChannelAccess(channelAccess);
 
                 Log.v(_TAG, "Open basic channel success. Channel: " + channel.getChannelNumber() );
-                
+
                 SmartcardServiceChannel basicChannel = channel.new SmartcardServiceChannel(this);
                 mChannels.add(channel);
                 return basicChannel;
-                
+
             } catch (Exception e) {
                 setError(error, e);
                 Log.v(_TAG, "OpenBasicChannel Exception: " + e.getMessage());
                 return null;
             }
-		}
+        }
 
-		@Override
-		public ISmartcardServiceChannel openLogicalChannel(byte[] aid,
-				ISmartcardServiceCallback callback, SmartcardError error)
-				throws RemoteException {
+        @Override
+        public ISmartcardServiceChannel openLogicalChannel(byte[] aid,
+                ISmartcardServiceCallback callback, SmartcardError error)
+                throws RemoteException {
             clearError(error);
 
             if ( isClosed() ) {
@@ -871,9 +871,9 @@ public final class SmartcardService extends Service {
                 String packageName = getPackageNameFromCallingUid( Binder.getCallingUid());
                 Log.v(_TAG, "Enable access control on logical channel for " + packageName);
                 ChannelAccess channelAccess = mReader.getTerminal().setUpChannelAccess(
-                		getPackageManager(), 
-                		aid,
-                		packageName, 
+                        getPackageManager(),
+                        aid,
+                        packageName,
                         callback );
                 Log.v(_TAG, "Access control successfully enabled.");
                channelAccess.setCallingPid(Binder.getCallingPid());
@@ -898,28 +898,28 @@ public final class SmartcardService extends Service {
                 Log.v(_TAG, "OpenLogicalChannel Exception: " + e.getMessage());
                 return null;
             }
-		}
-		
-		void setClosed(){
-			mIsClosed = true;
+        }
 
-		}
-    	
-	    /**
-	     * Closes the specified channel. <br>
-	     * After calling this method the session can not be used for the
-	     * communication with the secure element any more.
-	     * 
-	     * @param hChannel the channel handle obtained by an open channel command.
-	     */
-	    void removeChannel(Channel channel) {
-	        if (channel == null) {
-	        	return;
-	        }
+        void setClosed(){
+            mIsClosed = true;
+
+        }
+
+        /**
+         * Closes the specified channel. <br>
+         * After calling this method the session can not be used for the
+         * communication with the secure element any more.
+         *
+         * @param hChannel the channel handle obtained by an open channel command.
+         */
+        void removeChannel(Channel channel) {
+            if (channel == null) {
+                return;
+            }
             mChannels.remove(channel);
-	    }
+        }
     }
-    
+
     /*
      * Handler Thread used to load and initiate ChannelAccess condition
      */

@@ -42,7 +42,7 @@ public interface ITerminal {
     /**
      * Returns the channel for the specified handle or <code>null</code> if this
      * handle is not registered.
-     * 
+     *
      * @param hChannel the channel handle.
      * @return the channel for the specified handle or <code>null</code> if this
      *         handle is not registered.
@@ -51,7 +51,7 @@ public interface ITerminal {
 
     /**
      * Returns the reader name.
-     * 
+     *
      * @return the reader name.
      */
     String getName();
@@ -59,7 +59,7 @@ public interface ITerminal {
     /**
      * Sends a select command on the basic channel. With this command the
      * default application will be selected on the card. (e.g. CardManager)
-     * 
+     *
      * @throw NoSuchElementException if the default applet couldn't be found or
      *        selected
      */
@@ -67,7 +67,7 @@ public interface ITerminal {
 
     /**
      * Sends a select command on the basic channel.
-     * 
+     *
      * @param aid the aid which should be selected
      * @throw NoSuchElementException if the corresponding applet couldn't be
      *        found
@@ -76,7 +76,7 @@ public interface ITerminal {
 
     /**
      * Opens the basic channel to the card.
-     * 
+     *
      * @param callback the callback used to react on the death of the client.
      * @return a handle for the basic channel.
      * @throws CardException if opening the basic channel failed or the basic
@@ -86,7 +86,7 @@ public interface ITerminal {
 
     /**
      * Opens the basic channel to the card.
-     * 
+     *
      * @param aid the AID of the applet to be selected.
      * @param callback the callback used to react on the death of the client.
      * @return a handle for the basic channel.
@@ -97,7 +97,7 @@ public interface ITerminal {
 
     /**
      * Opens a logical channel to the card.
-     * 
+     *
      * @param callback the callback used to react on the death of the client.
      * @return a handle for the logical channel.
      * @throws CardException if opening the logical channel failed.
@@ -106,7 +106,7 @@ public interface ITerminal {
 
     /**
      * Opens a logical channel to the card.
-     * 
+     *
      * @param aid the AID of the applet to be selected.
      * @param callback the callback used to react on the death of the client.
      * @return a handle for the logical channel.
@@ -117,7 +117,7 @@ public interface ITerminal {
     /**
      * Returns <code>true</code> if a card is present; <code>false</code>
      * otherwise.
-     * 
+     *
      * @return <code>true</code> if a card is present; <code>false</code>
      *         otherwise.
      * @throws CardException if card presence information is not available.
@@ -127,7 +127,7 @@ public interface ITerminal {
     /**
      * Returns <code>true</code> if terminal is connected <code>false</code>
      * otherwise.
-     * 
+     *
      * @return <code>true</code> if at least one terminal is connected.
      */
     public boolean isConnected();
@@ -135,12 +135,12 @@ public interface ITerminal {
     /**
      * Returns the ATR of the connected card or null if the ATR is not
      * available.
-     * 
+     *
      * @return the ATR of the connected card or null if the ATR is not
      *         available.
      */
     public byte[] getAtr();
-    
+
     /**
      * Returns the data as received from the application select command inclusively the status word.
      * The returned byte array contains the data bytes in the following order:
@@ -151,13 +151,13 @@ public interface ITerminal {
      * be retrieved by the reader implementation.
      */
     public byte[] getSelectResponse();
-    
+
     /**
-     * Exchanges APDU (SELECT, READ/WRITE) to the 
+     * Exchanges APDU (SELECT, READ/WRITE) to the
      * given EF by File ID and file path via iccIO.
-     * 
+     *
      * The given command is checked and might be rejected.
-     * 
+     *
      * @param fileID
      * @param filePath
      * @param cmd
@@ -165,17 +165,17 @@ public interface ITerminal {
      */
     public byte[] simIOExchange(int fileID, String filePath, byte[] cmd) throws Exception;
 
-	
+
 
     /**
      * Set ups the Channel Access object for access control
      * from the cached access rules
      * for the given packageNames and the AID of the applet to be accessed.
-     * 
+     *
      * @return ChannelAccess object containing the access flags/filter.
      */
     ChannelAccess setUpChannelAccess( PackageManager packageManager, byte[] aid, String packageName, ISmartcardServiceCallback callback);
-    
+
     /**
      * Set up the correct access control hander ARA (or ARF)
      * and if indicated loads all accesses rules for the terminal.
@@ -183,20 +183,20 @@ public interface ITerminal {
      * @return true if rules have been successfully loaded
       */
     boolean initializeAccessControl( boolean loadAtStartup, ISmartcardServiceCallback callback);
-    
+
     /**
     * Reset the access control: should be called when the card is changed.
     */
     void resetAccessControl();
-    
-    
+
+
     AccessControlEnforcer getAccessControlEnforcer();
-    	
-    
+
+
     /**
       * Dump the terminal state (for debugging purpose and crash tools)
       * @param writer uses to print the dump
       * @param prefix to be added before any new line (mainly used for indentation)
       */
-    public void dump(PrintWriter writer, String prefix);    
+    public void dump(PrintWriter writer, String prefix);
 }

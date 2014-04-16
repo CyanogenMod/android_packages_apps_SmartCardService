@@ -31,28 +31,28 @@ public interface IChannel {
 
     /**
      * Closes this channel.
-     * 
+     *
      * @throws CardException if closing the channel failed.
      */
     void close() throws CardException;
 
     /**
      * Returns the channel number according to ISO 7816-4.
-     * 
+     *
      * @return the channel number according to ISO 7816-4.
      */
     int getChannelNumber();
 
     /**
      * Returns if this channel is a basic channel
-     * 
+     *
      * @return true if this channel is a basic channel
      */
     boolean isBasicChannel();
 
     /**
      * Returns the associated terminal.
-     * 
+     *
      * @return the associated terminal.
      */
     ITerminal getTerminal();
@@ -61,7 +61,7 @@ public interface IChannel {
      * Transmits the specified command APDU and returns the response APDU.
      * MANAGE channel commands are not allowed. Applet selection commands are
      * not allowed if this is a logical channel.
-     * 
+     *
      * @param command the command APDU to be transmitted.
      * @return the response APDU.
      * @throws CardException if command transmission failed or the command is
@@ -95,7 +95,7 @@ public interface IChannel {
     /**
      * true if aid during open xxx channel coud be selected.
      * false if aid could not be or was not selected.
-     * @return 
+     * @return
      */
     boolean hasSelectedAid();
 
@@ -103,7 +103,7 @@ public interface IChannel {
      * set selected aid flag and aid (may be null)
      */
     void hasSelectedAid(boolean has, byte[] aid);
-    
+
     /**
      * Returns the data as received from the application select command inclusively the status word.
      * The returned byte array contains the data bytes in the following order:

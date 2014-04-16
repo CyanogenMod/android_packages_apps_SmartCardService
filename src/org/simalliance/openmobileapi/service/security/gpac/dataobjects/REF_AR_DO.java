@@ -21,119 +21,119 @@ import java.io.IOException;
 
 /**
  * REF-AR_DO:
- * The REF-AR-DO contains access rules inclusively its corresponding references 
- * for the SE application (AID reference) and device application (hash reference). 
- *  
- * 
+ * The REF-AR-DO contains access rules inclusively its corresponding references
+ * for the SE application (AID reference) and device application (hash reference).
+ *
+ *
  *
  */
 public class REF_AR_DO extends BerTlv {
-	
-	public final static int _TAG = 0xE2;
-	
-	private REF_DO mRefDo = null;
-	private AR_DO mArDo = null;
 
-	public REF_AR_DO(byte[] rawData, int valueIndex, int valueLength) {
-		super(rawData, _TAG, valueIndex, valueLength);
-	}
+    public final static int _TAG = 0xE2;
 
-	public REF_AR_DO() {
-		super(null, _TAG, 0, 0);
-	}
-	
-	public REF_AR_DO(REF_DO ref_do, AR_DO ar_do ) {
-		super(null, _TAG, 0, 0);
-		mRefDo = ref_do;
-		mArDo = ar_do;
-	}	
-	
-	public REF_DO getRefDo() {
-		return mRefDo;
-	}
+    private REF_DO mRefDo = null;
+    private AR_DO mArDo = null;
 
-	public AR_DO getArDo() {
-		return mArDo;
-	}
+    public REF_AR_DO(byte[] rawData, int valueIndex, int valueLength) {
+        super(rawData, _TAG, valueIndex, valueLength);
+    }
 
-	/**
-	 * Interpret data.
-	 * 
-	 * Tags: E2 
-	 * Length: n
-	 *
-	 * Value:
-	 * REF-DO | AR-DO: A concatenation of an REF-DO and an AR-DO. 
-	 * The REF-DO must correspond to the succeeding AR-DO. 
- 	 * 
-	 * Length:
-	 * n bytes.
- 	 */
-	@Override
-	public void interpret() 
-		throws ParserException {
+    public REF_AR_DO() {
+        super(null, _TAG, 0, 0);
+    }
 
-		mRefDo = null;
-		mArDo = null;
-		
-		byte[] data = getRawData();
-		int index = getValueIndex();
-		
-		if( index + getValueLength() > data.length){
-			throw new ParserException( "Not enough data for AR_DO!");
-		}
-		
-		do {
-			BerTlv temp = BerTlv.decode(data, index);
-			if( temp.getTag() == REF_DO._TAG  ) { // REF-DO
-				mRefDo = new REF_DO( data, temp.getValueIndex(), temp.getValueLength());
-				mRefDo.interpret();
-			} else if( temp.getTag() == AR_DO._TAG ) { // AR-DO
-				mArDo = new AR_DO( data, temp.getValueIndex(), temp.getValueLength());
-				mArDo.interpret();
-			} else {
-				// uncomment following line if a more restrictive 
-				// behavior is necessary.
-				//throw new ParserException("Invalid DO in REF-AR-DO!");
-			}
-			index = temp.getValueIndex() + temp.getValueLength();
-		} while( getValueIndex() + getValueLength() > index );
+    public REF_AR_DO(REF_DO ref_do, AR_DO ar_do ) {
+        super(null, _TAG, 0, 0);
+        mRefDo = ref_do;
+        mArDo = ar_do;
+    }
 
-		// check for mandatory TLVs.
-		if( mRefDo == null ) {
-			throw new ParserException("Missing Ref-DO in REF-AR-DO!");
-		}
-		if( mArDo == null ) {
-			throw new ParserException("Missing AR-DO in REF-AR-DO!");
-		}
-	}
-	
-	
-	/**
-	 * Tag: E2 
-	 * Length: n
-	 * Value:
-	 * REF-DO | AR-DO: A concatenation of an REF-DO and an AR-DO. 
-	 */
-	@Override
-	public void build(ByteArrayOutputStream stream )
-		throws DO_Exception {
-		ByteArrayOutputStream temp = new ByteArrayOutputStream();
-		
-		if( mRefDo == null || mArDo == null ){
-			throw new DO_Exception( "REF-AR-DO: Required DO missing!");
-		}
-		stream.write(getTag());
-		
-		mRefDo.build(temp);
-		mArDo.build(temp);
-		
-		byte[] data = temp.toByteArray();
-		BerTlv.encodeLength(data.length, stream);
-		try {
-			stream.write(data);
-		} catch (IOException e) {
-			throw new DO_Exception("REF-AR-DO Memory IO problem! " +  e.getMessage());
-		}
-	}
+    public REF_DO getRefDo() {
+        return mRefDo;
+    }
+
+    public AR_DO getArDo() {
+        return mArDo;
+    }
+
+    /**
+     * Interpret data.
+     *
+     * Tags: E2
+     * Length: n
+     *
+     * Value:
+     * REF-DO | AR-DO: A concatenation of an REF-DO and an AR-DO.
+     * The REF-DO must correspond to the succeeding AR-DO.
+      *
+     * Length:
+     * n bytes.
+      */
+    @Override
+    public void interpret()
+        throws ParserException {
+
+        mRefDo = null;
+        mArDo = null;
+
+        byte[] data = getRawData();
+        int index = getValueIndex();
+
+        if( index + getValueLength() > data.length){
+            throw new ParserException( "Not enough data for AR_DO!");
+        }
+
+        do {
+            BerTlv temp = BerTlv.decode(data, index);
+            if( temp.getTag() == REF_DO._TAG  ) { // REF-DO
+                mRefDo = new REF_DO( data, temp.getValueIndex(), temp.getValueLength());
+                mRefDo.interpret();
+            } else if( temp.getTag() == AR_DO._TAG ) { // AR-DO
+                mArDo = new AR_DO( data, temp.getValueIndex(), temp.getValueLength());
+                mArDo.interpret();
+            } else {
+                // uncomment following line if a more restrictive
+                // behavior is necessary.
+                //throw new ParserException("Invalid DO in REF-AR-DO!");
+            }
+            index = temp.getValueIndex() + temp.getValueLength();
+        } while( getValueIndex() + getValueLength() > index );
+
+        // check for mandatory TLVs.
+        if( mRefDo == null ) {
+            throw new ParserException("Missing Ref-DO in REF-AR-DO!");
+        }
+        if( mArDo == null ) {
+            throw new ParserException("Missing AR-DO in REF-AR-DO!");
+        }
+    }
+
+
+    /**
+     * Tag: E2
+     * Length: n
+     * Value:
+     * REF-DO | AR-DO: A concatenation of an REF-DO and an AR-DO.
+     */
+    @Override
+    public void build(ByteArrayOutputStream stream )
+        throws DO_Exception {
+        ByteArrayOutputStream temp = new ByteArrayOutputStream();
+
+        if( mRefDo == null || mArDo == null ){
+            throw new DO_Exception( "REF-AR-DO: Required DO missing!");
+        }
+        stream.write(getTag());
+
+        mRefDo.build(temp);
+        mArDo.build(temp);
+
+        byte[] data = temp.toByteArray();
+        BerTlv.encodeLength(data.length, stream);
+        try {
+            stream.write(data);
+        } catch (IOException e) {
+            throw new DO_Exception("REF-AR-DO Memory IO problem! " +  e.getMessage());
+        }
+    }
 }

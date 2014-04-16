@@ -3,14 +3,14 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
+ * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -33,7 +33,7 @@ public class DERParser {
 
     /**
      * Returns "Base 128" encoded integer
-     * @return Converted integer 
+     * @return Converted integer
      */
     private int readIntBase128() {
         int value=0;
@@ -52,16 +52,16 @@ public class DERParser {
     throws PKCS15Exception {
         int size,TLVSize=0;
 
-        if (isEndofBuffer()) 
+        if (isEndofBuffer())
             throw new PKCS15Exception("[Parser] Cannot retreive size");
         // Determine data size
         if ((TLVSize=(mDERBuffer[mDERIndex++] & 0xff))>=128) {
             size=TLVSize-128;
             for(TLVSize=0;size>0;size--) {
-                if (!isEndofBuffer()) 
+                if (!isEndofBuffer())
                     TLVSize=(TLVSize<<8)+(mDERBuffer[mDERIndex++] & 0xff);
                 else throw new PKCS15Exception("[Parser] Cannot retreive size");
-        }} 
+        }}
 
         // Check if the buffer contains enough data
         if ((mDERIndex+TLVSize)>mDERSize)
@@ -75,7 +75,7 @@ public class DERParser {
      */
     private byte getTLVType()
     throws PKCS15Exception {
-        if (isEndofBuffer()) 
+        if (isEndofBuffer())
             throw new PKCS15Exception("[Parser] Cannot retreive type");
         return mDERBuffer[mDERIndex++];
     }
@@ -87,16 +87,16 @@ public class DERParser {
      */
     public DERParser(byte[] buffer)
     throws PKCS15Exception {
-        mDERBuffer=buffer; 
+        mDERBuffer=buffer;
         mDERIndex=0; mDERSize=0;
         if (mDERBuffer==null) return;
-        mDERSize=(short)mDERBuffer.length; 
+        mDERSize=(short)mDERBuffer.length;
         mTLVDataSize=mDERSize;
 
         // Remove padding
         if (mDERSize==0) return;
         if (mDERBuffer[mDERIndex]==ASN1.TAG_Padding) {
-            mTLVDataSize=0; 
+            mTLVDataSize=0;
             while(++mDERIndex<mDERSize) {
                 if (mDERBuffer[mDERIndex]!=ASN1.TAG_Padding)
                     throw new PKCS15Exception("[Parser] Incorrect file format");
@@ -152,7 +152,7 @@ public class DERParser {
     /**
      * Returns data of the current TLV structure
      * @return Data of current TLV structure
-     */   
+     */
     public byte[] getTLVData() {
         byte[] data=Arrays.copyOfRange(mDERBuffer,mDERIndex,
                                                         mDERIndex+mTLVDataSize);

@@ -28,14 +28,14 @@ interface ISmartcardServiceSession {
 
     /**
      * Get the reader that provides this session.
-     * 
+     *
      * @return The Reader object.
      */
     ISmartcardServiceReader getReader();
 
-   	/**
-	 * Returns the ATR of the connected card or null if the ATR is not available.
-	 */
+       /**
+     * Returns the ATR of the connected card or null if the ATR is not available.
+     */
     byte[] getAtr();
 
     /**
@@ -43,16 +43,16 @@ interface ISmartcardServiceSession {
      * channels opened by this application with this Secure Element.
      */
     void close(out SmartcardError error);
-    
+
     /**
      * Close any channel opened on this session.
      */
     void closeChannels(out SmartcardError error);
-    
-    
+
+
     /**
      * Tells if this session is closed.
-     * 
+     *
      * @return <code>true</code> if the session is closed, false otherwise.
      */
     boolean isClosed();

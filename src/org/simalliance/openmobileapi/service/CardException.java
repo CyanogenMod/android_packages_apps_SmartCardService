@@ -24,7 +24,7 @@ package org.simalliance.openmobileapi.service;
  */
 public class CardException extends Exception {
 
-	private static final long serialVersionUID = -5298933800369298346L;
+    private static final long serialVersionUID = -5298933800369298346L;
 
     public CardException(String message) {
         super(message);
