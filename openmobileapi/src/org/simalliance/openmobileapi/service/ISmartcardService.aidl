@@ -38,10 +38,10 @@ interface ISmartcardService {
      */
     ISmartcardServiceReader getReader(String reader, out SmartcardError error);
 
- 	/**
-     * Checks if the application defined by the package name is allowed to receive 
-     * NFC transaction events for the defined AID. 
+     /**
+     * Checks if the application defined by the package name is allowed to receive
+     * NFC transaction events for the defined AID.
      */
     boolean[] isNFCEventAllowed(String reader, in byte[] aid, in String[] packageNames, ISmartcardServiceCallback callback, out SmartcardError error);
-     
+
 }

@@ -30,7 +30,7 @@ import android.os.RemoteException;
  * device. These Readers can be physical devices or virtual devices. They can be
  * removable or not. They can contain Secure Element that can or cannot be
  * removed.
- * 
+ *
  * @see <a href="http://simalliance.org">SIMalliance Open Mobile API  v2.02</a>
  */
 public class Reader {
@@ -38,7 +38,7 @@ public class Reader {
     private final String mName;
     private final SEService mService;
     private ISmartcardServiceReader mReader;
-    
+
     private final Object mLock = new Object();
 
 
@@ -46,17 +46,17 @@ public class Reader {
         mName = name;
         mService = service;
         mReader = null;
-        
+
     }
 
     /**
      * Return the user-friendly name of this reader.
      * <ul>
-	 * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
-	 * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
-	 * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
-	 * <ul>
-     * 
+     * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
+     * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
+     * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
+     * <ul>
+     *
      * @return name of this Reader
      */
     public String getName() {
@@ -70,73 +70,73 @@ public class Reader {
      * ICC ON if its not already on). There might be multiple sessions opened at
      * the same time on the same reader. The system ensures the interleaving of
      * APDUs between the respective sessions.
-     * 
+     *
      * @throws IOException if something went wrong with the communicating to the
      *             Secure Element or the reader.
      * @return a Session object to be used to create Channels.
      */
     public Session openSession() throws IOException {
 
-    	if( mService == null || mService.isConnected() == false ){
-    		throw new IllegalStateException("service is not connected");
-    	}
-    	if( mReader == null ){
-    		try {
-    			mReader = mService.getReader(mName);
-    		} catch (Exception e) {
-    			throw new IOException("service reader cannot be accessed.");
-    		}
-    	}
-    	
+        if( mService == null || mService.isConnected() == false ){
+            throw new IllegalStateException("service is not connected");
+        }
+        if( mReader == null ){
+            try {
+                mReader = mService.getReader(mName);
+            } catch (Exception e) {
+                throw new IOException("service reader cannot be accessed.");
+            }
+        }
+
         synchronized (mLock) {
-        	SmartcardError error = new SmartcardError();
-        	ISmartcardServiceSession session;
-			try {
-				session = mReader.openSession(error);
-			} catch (RemoteException e) {
-				throw new IOException( e.getMessage() );
-			}
-        	SEService.checkForException(error);
-        	
-        	if( session == null ){
-        		throw new IOException( "service session is null." ); 
-        	}
-        	
+            SmartcardError error = new SmartcardError();
+            ISmartcardServiceSession session;
+            try {
+                session = mReader.openSession(error);
+            } catch (RemoteException e) {
+                throw new IOException( e.getMessage() );
+            }
+            SEService.checkForException(error);
+
+            if( session == null ){
+                throw new IOException( "service session is null." );
+            }
+
             return new Session(mService, session, this);
         }
     }
 
     /**
      * Check if a Secure Element is present in this reader.
-     * 
+     *
      * @return <code>true</code> if the SE is present, <code>false</code> otherwise.
      */
     public boolean isSecureElementPresent() {
-    	if( mService == null || mService.isConnected() == false ){
-    		throw new IllegalStateException("service is not connected");
-    	}
-    	if( mReader == null ){
-    		try {
-    			mReader = mService.getReader(mName);
-    		} catch (Exception e) {
-    			throw new IllegalStateException("service reader cannot be accessed. " + e.getLocalizedMessage());
-    		}
-    	}
+        if( mService == null || mService.isConnected() == false ){
+            throw new IllegalStateException("service is not connected");
+        }
+        if( mReader == null ){
+            try {
+                mReader = mService.getReader(mName);
+            } catch (Exception e) {
+                throw new IllegalStateException("service reader cannot be accessed. " + e.getLocalizedMessage());
+            }
+        }
 
-    	SmartcardError error = new SmartcardError();
-    	boolean flag;
-		try {
-			flag = mReader.isSecureElementPresent(error);
-		} catch (RemoteException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-    	SEService.checkForException(error);
-        return flag; 
+        SmartcardError error = new SmartcardError();
+        boolean flag;
+        try {
+            flag = mReader.isSecureElementPresent(error);
+        } catch (RemoteException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+        SEService.checkForException(error);
+        return flag;
     }
 
     /**
      * Return the Secure Element service this reader is bound to.
-     * 
+     *
      * @return the SEService object.
      */
     public SEService getSEService() {
@@ -148,20 +148,20 @@ public class Reader {
      * all these sessions will be closed.
      */
     public void closeSessions() {
-    	if( mService == null || mService.isConnected() == false ){
-    		throw new IllegalStateException("service is not connected");
-    	}
-		if( mReader != null ) {
-	    	synchronized (mLock) {
-	        	SmartcardError error = new SmartcardError();
-	    		try {
-	    			mReader.closeSessions(error);
-	    		} catch (RemoteException e) {
-	    			throw new RuntimeException(e.getMessage());
-	    		}
-	        	SEService.checkForException(error);
-	        }
-    	}
+        if( mService == null || mService.isConnected() == false ){
+            throw new IllegalStateException("service is not connected");
+        }
+        if( mReader != null ) {
+            synchronized (mLock) {
+                SmartcardError error = new SmartcardError();
+                try {
+                    mReader.closeSessions(error);
+                } catch (RemoteException e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+                SEService.checkForException(error);
+            }
+        }
     }
 
     // ******************************************************************

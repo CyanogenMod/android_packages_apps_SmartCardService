@@ -3,14 +3,14 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
+ * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -45,11 +45,11 @@ public class SecureElement {
     private IChannel mArfChannel=null;
     // Handle to a built-in "Secure Element"
     private ITerminal mTerminalHandle=null;
-    // Arf Controller within the SCAPI handler 
-    private ArfController mArfHandler=null; 
+    // Arf Controller within the SCAPI handler
+    private ArfController mArfHandler=null;
     // Callback used during "Secure Element" communication
-    private final ISmartcardServiceCallback mCallback = 
-    		new ISmartcardServiceCallback.Stub(){};
+    private final ISmartcardServiceCallback mCallback =
+            new ISmartcardServiceCallback.Stub(){};
 
     public static final short SIM_IO = 1;
     public static final short SIM_ALLIANCE = 0;
@@ -59,7 +59,7 @@ public class SecureElement {
 
     /**
      * Constructor
-     * 
+     *
      * @param arfHandler - handle to the owning arf controller object
      * @param handle - handle to the SE terminal to be accessed.
      */
@@ -67,33 +67,33 @@ public class SecureElement {
         mTerminalHandle=handle;
         mArfHandler=arfHandler;
     }
-    
+
     public short getSeInterface(){
-    	return mSEInterface;
+        return mSEInterface;
     }
-    
+
     public void setSeInterface(short seInterface){
-    	mSEInterface = seInterface;
+        mSEInterface = seInterface;
     }
- 
+
     /**
      * Transmits ADPU commands
      * @param cmd APDU command
      * @return Data returned by the APDU command
      */
     public byte[] exchangeAPDU(EF ef, byte[] cmd)
-    	throws SecureElementException {
+        throws SecureElementException {
         try {
-            if (mSEInterface==SIM_IO) { 
+            if (mSEInterface==SIM_IO) {
 
                 return mTerminalHandle.simIOExchange(ef.getFileId(),ef.getFilePath(),cmd);
-            } else { 
+            } else {
 
-            	return mArfChannel.transmit(cmd);
+                return mArfChannel.transmit(cmd);
             }
-		} catch (Exception e) {
-	            throw new SecureElementException("Secure Element access error " + e.getLocalizedMessage());
-	    }
+        } catch (Exception e) {
+                throw new SecureElementException("Secure Element access error " + e.getLocalizedMessage());
+        }
     }
 
     /**
@@ -108,16 +108,16 @@ public class SecureElement {
             mArfChannel=mTerminalHandle.openLogicalChannel(null,AID,mCallback);
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
-        } catch(Exception e) { 
-        	if( e instanceof MissingResourceException ){ 
-            	// this indicates that no channel is left for accessing the SE element
+        } catch(Exception e) {
+            if( e instanceof MissingResourceException ){
+                // this indicates that no channel is left for accessing the SE element
                 Log.d(TAG, "no channels left to access ARF: " + e.getMessage() );
                 throw (MissingResourceException)e;
-        	} else {
-        		Log.e(TAG,"Error opening logical channel " + e.getLocalizedMessage());
-        	}
-        	mArfChannel = null;
-        	return null; 
+            } else {
+                Log.e(TAG,"Error opening logical channel " + e.getLocalizedMessage());
+            }
+            mArfChannel = null;
+            return null;
         }
     }
 
@@ -129,55 +129,55 @@ public class SecureElement {
         try {
             if( mArfChannel != null){
 
-            	mArfChannel.close();
-            	mArfChannel = null;
+                mArfChannel.close();
+                mArfChannel = null;
             } else {
 
             }
-            
-        } catch(Exception e) { 
-        	Log.e(TAG,"Error closing channel " + e.getLocalizedMessage()); 
-    	}
+
+        } catch(Exception e) {
+            Log.e(TAG,"Error closing channel " + e.getLocalizedMessage());
+        }
     }
 
     /**
-     * Set up channel access to allow, 
+     * Set up channel access to allow,
      * so that PKCS15 files can be read.
-     * 
+     *
      * @param channel
      */
     private void setUpChannelAccess( IChannel channel ){
         // set access conditions to access ARF.
         ChannelAccess arfChannelAccess = new ChannelAccess();
         arfChannelAccess.setAccess(ChannelAccess.ACCESS.ALLOWED, "");
-        arfChannelAccess.setApduAccess(ChannelAccess.ACCESS.ALLOWED); 
+        arfChannelAccess.setApduAccess(ChannelAccess.ACCESS.ALLOWED);
         channel.setChannelAccess(arfChannelAccess);
 
     }
 
     public byte[] getRefreshTag() {
-		if( mArfHandler != null ){
-			return mArfHandler.getAccessRuleCache().getRefreshTag();
-		}
-		return null;
-	}
-
-	public void setRefreshTag(byte[] refreshTag) {
-		if( mArfHandler != null ) {
-			mArfHandler.getAccessRuleCache().setRefreshTag(refreshTag);
-		}
-	}
-
-    public void putAccessRule( AID_REF_DO aid_ref_do, Hash_REF_DO hash_ref_do, ChannelAccess channelAccess ) {
-    	
-    	REF_DO ref_do = new REF_DO(aid_ref_do, hash_ref_do);
-    	mArfHandler.getAccessRuleCache().putWithMerge(ref_do, channelAccess);
+        if( mArfHandler != null ){
+            return mArfHandler.getAccessRuleCache().getRefreshTag();
+        }
+        return null;
     }
 
-	public void resetAccessRules() {
-		this.mArfHandler.getAccessRuleCache().reset();
-	}
-	public void clearAccessRuleCache() {
-		this.mArfHandler.getAccessRuleCache().clearCache();
-	}
+    public void setRefreshTag(byte[] refreshTag) {
+        if( mArfHandler != null ) {
+            mArfHandler.getAccessRuleCache().setRefreshTag(refreshTag);
+        }
+    }
+
+    public void putAccessRule( AID_REF_DO aid_ref_do, Hash_REF_DO hash_ref_do, ChannelAccess channelAccess ) {
+
+        REF_DO ref_do = new REF_DO(aid_ref_do, hash_ref_do);
+        mArfHandler.getAccessRuleCache().putWithMerge(ref_do, channelAccess);
+    }
+
+    public void resetAccessRules() {
+        this.mArfHandler.getAccessRuleCache().reset();
+    }
+    public void clearAccessRuleCache() {
+        this.mArfHandler.getAccessRuleCache().clearCache();
+    }
 }

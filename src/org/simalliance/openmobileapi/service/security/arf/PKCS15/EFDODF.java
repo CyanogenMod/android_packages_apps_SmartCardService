@@ -3,14 +3,14 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
+ * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -49,10 +49,10 @@ public class EFDODF extends EF{
         while(!DER.isEndofBuffer()) {
             if (DER.parseTLV()==(byte)0xA1) { // OidDO Data Object
                 // Common Object Attributes
-                DER.parseTLV(ASN1.TAG_Sequence); 
+                DER.parseTLV(ASN1.TAG_Sequence);
                 DER.skipTLVData();
                 // Common Data Object Attributes
-                DER.parseTLV(ASN1.TAG_Sequence); 
+                DER.parseTLV(ASN1.TAG_Sequence);
                 DER.skipTLVData();
 
                 objectType=DER.parseTLV();
@@ -64,12 +64,12 @@ public class EFDODF extends EF{
                     DER.parseTLV(ASN1.TAG_Sequence);
                     context=DER.saveContext();
                     if (DER.parseOID().compareTo(AC_OID)!=0) {
-                        DER.restoreContext(context); 
+                        DER.restoreContext(context);
                         DER.skipTLVData();
                     } else return DER.parsePathAttributes();
                 } else throw new PKCS15Exception("[Parser] OID Tag expected");
             } else DER.skipTLVData();
-        } 
+        }
         return null; // No "Access Control" OID found
     }
 
@@ -79,7 +79,7 @@ public class EFDODF extends EF{
      * @param secureElement SE on which ISO7816 commands are applied
      */
     public EFDODF(SecureElement handle) {
-    	super(handle);
+        super(handle);
     }
 
     /**
@@ -89,13 +89,13 @@ public class EFDODF extends EF{
      *             <code>null</code> otherwise
       */
     public byte[] analyseFile(byte[] path)
-    	throws PKCS15Exception,SecureElementException 
-	{
+        throws PKCS15Exception,SecureElementException
+    {
         Log.v(TAG,"Analysing EF_DODF...");
-        
+
         if (selectFile(path)!=APDU_SUCCESS)
             throw new PKCS15Exception("EF_DODF not found!");
-        
+
         return decodeDER(readBinary(0,Util.END));
     }
 

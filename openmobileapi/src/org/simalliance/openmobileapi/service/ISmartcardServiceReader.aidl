@@ -24,14 +24,14 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceCallback;
 import org.simalliance.openmobileapi.service.SmartcardError;
 
 interface ISmartcardServiceReader {
-	/**
+    /**
      * Return the user-friendly name of this reader.
      * <ul>
-	 * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
-	 * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
-	 * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
-	 * <ul>
-     * 
+     * <li>If this reader is a SIM reader, then its name must start with the "SIM" prefix.</li>
+     * <li>If the reader is a SD or micro SD reader, then its name must start with the "SD" prefix</li>
+     * <li>If the reader is a embedded SE reader, then its name must start with the "eSE" prefix</li>
+     * <ul>
+     *
      * @return name of this Reader
      */
     String getName(out SmartcardError error);
@@ -50,15 +50,15 @@ interface ISmartcardServiceReader {
      * ICC ON if its not already on). There might be multiple sessions opened at
      * the same time on the same reader. The system ensures the interleaving of
      * APDUs between the respective sessions.
-     * 
+     *
      * @return a Session object to be used to create Channels.
      */
     ISmartcardServiceSession openSession(out SmartcardError error);
-    
+
     /**
      * Close all the sessions opened on this reader. All the channels opened by
      * all these sessions will be closed.
      */
     void closeSessions(out SmartcardError error);
-    
+
 }

@@ -47,7 +47,7 @@ public class AddonTerminal extends Terminal {
     private Method mGetName = null;
 
     private Method mGetAtr = null;
-    
+
     private Method mGetSelectResponse = null;
 
     public static String[] getPackageNames(Context context) {
@@ -111,7 +111,7 @@ public class AddonTerminal extends Terminal {
     /**
      * Returns the ATR of the connected card or null if the ATR is not
      * available.
-     * 
+     *
      * @return the ATR of the connected card or null if the ATR is not
      *         available.
      */

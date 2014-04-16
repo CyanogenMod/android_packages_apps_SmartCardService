@@ -58,7 +58,7 @@ public class SmartcardError implements Parcelable {
 
     /**
      * Creates a smartcard error which creates the specified exception.
-     * 
+     *
      * @param clazz the exception class. <code>null</code> to reset the error
      *            information.
      * @param message the exception message.
@@ -80,7 +80,7 @@ public class SmartcardError implements Parcelable {
      * Creates the encoded exception. Returns <code>null</code> if empty. If the
      * encoded exception is neither a RuntimeException nor a CardException, it
      * is encapsulated in a RuntimeException.
-     * 
+     *
      * @return the encoded exception or <code>null</code> if empty.
      */
     @SuppressWarnings({ "rawtypes" })
@@ -110,7 +110,7 @@ public class SmartcardError implements Parcelable {
 
     /**
      * Sets the error information.
-     * 
+     *
      * @param clazz the exception class. <code>null</code> to reset the error
      *            information.
      * @param message the exception message.
@@ -126,7 +126,7 @@ public class SmartcardError implements Parcelable {
      * container is empty. If the encoded exception is neither a
      * RuntimeException nor a CardException, it is encapsulated in a
      * RuntimeException.
-     * 
+     *
      * @throws RuntimeException if the encoded exception is not a CardException.
      * @throws CardException if a CardException is encoded.
      */

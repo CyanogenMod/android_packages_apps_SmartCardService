@@ -113,8 +113,8 @@ final class ASSDTerminal extends Terminal {
 
     @Override
     protected int internalOpenLogicalChannel() throws Exception {
-    	
-    	mSelectResponse = null;
+
+        mSelectResponse = null;
         byte[] manageChannelCommand = new byte[] {
                 0x00, 0x70, 0x00, 0x00, 0x01
         };
@@ -148,7 +148,7 @@ final class ASSDTerminal extends Terminal {
         selectCommand[4] = (byte) aid.length;
         System.arraycopy(aid, 0, selectCommand, 5, aid.length);
         try {
-        	mSelectResponse = transmit(selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
+            mSelectResponse = transmit(selectCommand, 2, 0x9000, 0xFFFF, "SELECT");
         } catch (CardException e) {
             internalCloseLogicalChannel(channelNumber);
             throw new NoSuchElementException(e.getMessage());
