@@ -74,6 +74,13 @@ public class EFACConditions extends EF {
 
         // empty condition file
         if (DER.isEndofBuffer()) {
+            channelAccess.setAccess(ChannelAccess.ACCESS.DENIED, "Empty ACCondition");
+            channelAccess.setNFCEventAccess(ChannelAccess.ACCESS.DENIED);
+            channelAccess.setApduAccess(ChannelAccess.ACCESS.DENIED);
+            channelAccess.setUseApduFilter(false);
+            channelAccess.setApduFilter(null);
+            Log.v(TAG, "Empty ACCondition: Access Deny for all apps");
+
             mSEHandle.putAccessRule(mAid_Ref_Do, hash_ref_do, channelAccess);
             return;
         }

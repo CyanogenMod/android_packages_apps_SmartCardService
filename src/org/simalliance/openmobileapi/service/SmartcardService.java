@@ -31,6 +31,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageInfo;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
@@ -41,6 +42,10 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.UserHandle;
+
+import android.nfc.INfcAdapterExtras;
+import android.nfc.NfcAdapter;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
@@ -117,6 +122,8 @@ public final class SmartcardService extends Service {
     /* Broadcast receivers */
     private BroadcastReceiver mSimReceiver;
     private BroadcastReceiver mNfcReceiver;
+    private BroadcastReceiver mNfcEventReceiver;
+    private BroadcastReceiver mPackageUpdateReceiver;
     private BroadcastReceiver mMediaReceiver;
 
     /* Async task */
@@ -127,6 +134,15 @@ public final class SmartcardService extends Service {
      */
     private ServiceHandler mServiceHandler;
 
+    List<PackageInfo> mInstalledPackages; // cached version of installed packages
+
+    void updatePackageCache() {
+        PackageManager pm = getPackageManager();
+        List<PackageInfo> packages = pm.getInstalledPackages(0, UserHandle.USER_OWNER);
+        synchronized (this) {
+            mInstalledPackages = packages;
+        }
+    }
 
     public SmartcardService() {
         super();
@@ -156,6 +172,8 @@ public final class SmartcardService extends Service {
 
         // Get the HandlerThread's Looper and use it for our Handler
         mServiceHandler = new ServiceHandler(thread.getLooper());
+
+        updatePackageCache();
 
         createTerminals();
         mInitialiseTask = new InitialiseTask();
@@ -220,6 +238,8 @@ public final class SmartcardService extends Service {
             Log.i(_TAG, "OnPostExecute()");
             registerSimStateChangedEvent(getApplicationContext()) ;
             registerAdapterStateChangedEvent(getApplicationContext());
+            registerNfcEvent(getApplicationContext());
+            registerPackageUpdateEvent(getApplicationContext());
             registerMediaMountedEvent(getApplicationContext());
             mInitialiseTask = null;
         }
@@ -284,6 +304,244 @@ public final class SmartcardService extends Service {
             mNfcReceiver = null;
         }
      }
+
+    private void registerPackageUpdateEvent(Context context) {
+        Log.v(_TAG, "register Package Update event");
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE);
+        intentFilter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        intentFilter.addDataScheme("package");
+
+        mPackageUpdateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (action.equals(Intent.ACTION_PACKAGE_REMOVED) ||
+                    action.equals(Intent.ACTION_PACKAGE_ADDED) ||
+                    action.equals(Intent.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE) ||
+                    action.equals(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE)) {
+                    updatePackageCache();
+                }
+            };
+        };
+        context.registerReceiver(mPackageUpdateReceiver, intentFilter);
+    }
+
+    private void unregisterPackageUpdateEvent(Context context) {
+        if(mPackageUpdateReceiver!= null) {
+            Log.v(_TAG, "unregister Package Update event");
+            context.unregisterReceiver(mPackageUpdateReceiver);
+            mPackageUpdateReceiver = null;
+        }
+    }
+
+    private void registerNfcEvent(Context context) {
+        Log.v(_TAG, "register NFC event");
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED");
+        intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED");
+        intentFilter.addAction("com.android.nfc_extras.action.AID_SELECTED");
+
+        mNfcEventReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                boolean nfcAdapterExtraActionRfFieldOn = false;
+                boolean nfcAdapterExtraActionRfFieldOff = false;
+                boolean nfcAdapterExtraActionAidSelected = false;
+                byte[] aid = null;
+                byte[] data = null;
+                byte[] seId = null;
+                String seTypeName = null;
+
+                String action = intent.getAction();
+
+                if (action.equals("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED")){
+                    nfcAdapterExtraActionRfFieldOn = true;
+                    aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
+                    Log.i(_TAG, "got RF_FIELD_ON_DETECTED");
+                }
+                else if (action.equals("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED")){
+                    nfcAdapterExtraActionRfFieldOff = true;
+                    aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
+                    Log.i(_TAG, "got RF_FIELD_OFF_DETECTED");
+                }
+                else if (action.equals("com.android.nfc_extras.action.AID_SELECTED")){
+                    nfcAdapterExtraActionAidSelected = true;
+                    aid = intent.getByteArrayExtra("com.android.nfc_extras.extra.AID");
+                    data = intent.getByteArrayExtra("com.android.nfc_extras.extra.DATA");
+                    seId = intent.getByteArrayExtra("com.android.nfc_extras.extra.SEID");
+
+                    StringBuffer strAid = new StringBuffer();
+                    if (aid == null) {
+                        strAid.append("empty");
+                    } else {
+                        for (int i = 0; i < aid.length; i++) {
+                            String hex = Integer.toHexString(0xFF & aid[i]);
+                            if (hex.length() == 1)
+                                strAid.append('0');
+                            strAid.append(hex);
+                        }
+                    }
+
+                    StringBuffer strData = new StringBuffer();
+                    if (data == null) {
+                        strData.append("empty");
+                    } else {
+                        for (int i = 0; i < data.length; i++) {
+                            String hex = Integer.toHexString(0xFF & data[i]);
+                            if (hex.length() == 1)
+                               strData.append('0');
+                            strData.append(hex);
+                        }
+                    }
+
+                    if (seId == null) {
+                        seTypeName = new String ("UNKNOWN");
+                    }
+                    else {
+                        if (seId[0] == 1)
+                            seTypeName = new String (_UICC_TERMINAL);
+                        else if (seId[0] == 2)
+                            seTypeName = new String (_eSE_TERMINAL);
+                        else
+                            seTypeName = new String ("UNKNOWN");
+                    }
+
+                    //Log.i(_TAG, "got AID_SELECTED AID:" + strAid + " DATA:" + strData + " SE:" + seTypeName);
+
+                    if (seTypeName.startsWith("UNKNOWN"))
+                        return;
+                }
+                else {
+                    Log.i(_TAG, "mNfcEventReceiver got unexpected intent:" + intent.getAction());
+                }
+
+                try
+                {
+                    NfcAdapter adapter =  NfcAdapter.getDefaultAdapter(context);
+                    if(adapter == null) {
+                        Log.i(_TAG, "Couldn't get NfcAdaptor");
+                        return;
+                    }
+
+                    INfcAdapterExtras ex = adapter.getNfcAdapterExtrasInterface();
+                    if(ex == null)  {
+                        Log.i(_TAG, "Couldn't get NfcAdapterExtras");
+                        return;
+                    }
+
+                    String [] packageNames = new String[mInstalledPackages.size()];
+                    {
+                        int i = 0;
+                        synchronized(this) {
+                            for (PackageInfo pkg : mInstalledPackages) {
+                                if (pkg != null && pkg.applicationInfo != null) {
+                                    packageNames[i++] = new String(pkg.packageName);
+                                }
+                            }
+                        }
+                    }
+
+                    boolean [] nfcEventAccessFinal = null;
+
+                    if (nfcAdapterExtraActionRfFieldOn || nfcAdapterExtraActionRfFieldOff) {
+                        SmartcardError error = new SmartcardError();
+                        String readers[] = updateTerminals();
+                        AccessControlEnforcer acEnforcer;
+                        for (int i = 0; i < readers.length; i++){
+                            acEnforcer = getTerminal(readers[i], error).getAccessControlEnforcer();
+                            if( acEnforcer == null ) {
+                                Log.i(_TAG, "Couldn't get AccessControlEnforcer for " + readers[i]);
+                                continue;
+                            }
+
+                            Log.i(_TAG, "Checking access rules for RF Field On/Off for " + readers[i]);
+
+                            acEnforcer.setPackageManager(getPackageManager());
+                            boolean [] nfcEventAccess = acEnforcer.isNFCEventAllowed(aid, packageNames,
+                                                                                     (ISmartcardServiceCallback)null );
+                            // RF Field ON/OFF doesn't belong to any SE, so allow access to NFC Event if any SE allows
+                            if (nfcEventAccessFinal == null) {
+                                nfcEventAccessFinal = nfcEventAccess;
+                            } else {
+                                for (int j = 0; j < mInstalledPackages.size(); j++) {
+                                    if (nfcEventAccess[j] == true) {
+                                        nfcEventAccessFinal[j] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (nfcAdapterExtraActionAidSelected) {
+                        SmartcardError error = new SmartcardError();
+                        AccessControlEnforcer acEnforcer;
+
+                        String readerName = null;
+                        String readers[] = updateTerminals();
+                        for (int i = 0; i < readers.length; i++) {
+                            if (readers[i].startsWith(seTypeName)) {
+                                readerName = new String(readers[i]);
+                                break;
+                            }
+                        }
+                        if (readerName == null) {
+                            Log.i(_TAG, "Couldn't find reader for " + readerName);
+                            return;
+                        }
+
+                        acEnforcer = getTerminal(readerName, error).getAccessControlEnforcer();
+                        if( acEnforcer == null ) {
+                            Log.i(_TAG, "Couldn't get AccessControlEnforcer for " + readerName);
+                            return;
+                        }
+
+                        Log.i(_TAG, "Checking access rules for AID Selected for " + readerName);
+
+                        acEnforcer.setPackageManager(getPackageManager());
+                        nfcEventAccessFinal = acEnforcer.isNFCEventAllowed(aid, packageNames,
+                                                                           (ISmartcardServiceCallback)null );
+                    }
+
+                    if (nfcEventAccessFinal != null) {
+                        synchronized(this) {
+                            for (int i = 0; i < mInstalledPackages.size(); i++) {
+                                if (nfcEventAccessFinal[i]) {
+                                    if (packageNames[i].equals("org.simalliance.openmobileapi.service"))
+                                        continue;
+                                    //Log.i(_TAG, "granted :" + packageNames[i]);
+                                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                                    intent.setPackage(packageNames[i]);
+                                    try {
+                                        ex.deliverSeIntent("org.simalliance.openmobileapi.service", intent);
+                                    } catch (Exception ignore) {
+                                        //ignore
+                                    }
+                                } else {
+                                    //Log.i(_TAG, "denied : " + packageNames[i]);
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.v(_TAG, "NFC Event AC Exception: " + e.getMessage() );
+                }
+            }
+        };
+        context.registerReceiver(mNfcEventReceiver, intentFilter);
+    }
+
+    private void unregisterNfcEvent(Context context) {
+        if(mNfcEventReceiver!= null) {
+            Log.v(_TAG, "unregister NFC event");
+            context.unregisterReceiver(mNfcEventReceiver);
+            mNfcEventReceiver = null;
+        }
+    }
 
     private void registerMediaMountedEvent(Context context) {
         Log.v(_TAG, "register MEDIA_MOUNTED event");
@@ -400,6 +658,8 @@ public final class SmartcardService extends Service {
         // Unregister all the broadcast receivers
         unregisterSimStateChangedEvent(getApplicationContext()) ;
         unregisterAdapterStateChangedEvent(getApplicationContext());
+        unregisterNfcEvent(getApplicationContext());
+        unregisterPackageUpdateEvent(getApplicationContext());
         unregisterMediaMountedEvent(getApplicationContext());
 
         mServiceHandler = null;
@@ -698,83 +958,10 @@ public final class SmartcardService extends Service {
 
         private byte[] mAtr;
 
-        private BroadcastReceiver mNfcExtraEventReceiver;
-
-        private void registerNfcEvent(Context context) {
-            Log.v(_TAG, "register nfc_extras.action event");
-
-            IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED");
-            intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED");
-            intentFilter.addAction("com.android.nfc_extras.action.AID_SELECTED");
-
-            mNfcExtraEventReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    boolean nfcAdapterExtraActionRfFieldOn = false;
-                    boolean nfcAdapterExtraActionRfFieldOff = false;
-                    boolean nfcAdapterExtraActionAidSelected = false;
-                    byte[] aid = null;
-
-                    String action = intent.getAction();
-                    if (action.equals("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED")){
-                        nfcAdapterExtraActionRfFieldOn = true;
-                        aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-                        Log.i(_TAG, "got RF_FIELD_ON_DETECTED");
-                    }
-                    else if (action.equals("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED")){
-                        nfcAdapterExtraActionRfFieldOff = true;
-                        aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
-                        Log.i(_TAG, "got RF_FIELD_OFF_DETECTED");
-                    }
-                    else if (action.equals("com.android.nfc_extras.action.AID_SELECTED")){
-                        nfcAdapterExtraActionAidSelected = true;
-                        aid = intent.getByteArrayExtra("com.android.nfc_extras.extra.AID");
-
-                        StringBuffer strAid = new StringBuffer();
-                        for (int i = 0; i < aid.length; i++) {
-                            String hex = Integer.toHexString(0xFF & aid[i]);
-                            if (hex.length() == 1)
-                                strAid.append('0');
-                            strAid.append(hex);
-                        }
-                        Log.i(_TAG, "got AID_SELECTED AID:" + strAid);
-                    }
-
-                    try
-                    {
-                        if( nfcAdapterExtraActionRfFieldOn ||
-                            nfcAdapterExtraActionRfFieldOff ||
-                            nfcAdapterExtraActionAidSelected) {
-                            Log.i(_TAG, "Checking access rules for NFC event");
-
-                            AccessControlEnforcer ac = mReader.getTerminal().getAccessControlEnforcer();
-                            if( ac != null ) {
-                                String [] packageNames = new String[] {getPackageNameFromCallingUid( Binder.getCallingUid())};
-                                ac.setPackageManager(getPackageManager());
-                                boolean [] nfcEventAccess = ac.isNFCEventAllowed(aid, packageNames, (ISmartcardServiceCallback)null );
-                                if (nfcEventAccess[0]) {
-                                    Log.i(_TAG, "granted");
-                                    intent.setPackage(packageNames[0]);
-                                    context.sendBroadcast(intent);
-                                } else {
-                                    Log.i(_TAG, "denied");
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        Log.v(_TAG, "isNFCEventAllowed Exception: " + e.getMessage() );
-                    }
-                }
-            };
-            context.registerReceiver(mNfcReceiver, intentFilter);
-        }
-
         public SmartcardServiceSession(SmartcardServiceReader reader){
             mReader = reader;
             mAtr = mReader.getAtr();
             mIsClosed = false;
-                registerNfcEvent(getApplicationContext());
         }
 
         @Override
@@ -796,11 +983,6 @@ public final class SmartcardService extends Service {
             try {
                 mReader.closeSession(this);
 
-                if(mNfcExtraEventReceiver!= null) {
-                    Log.v(_TAG, "unregister nfc_extras.action event");
-                    getApplicationContext().unregisterReceiver(mNfcExtraEventReceiver);
-                    mNfcExtraEventReceiver = null;
-                }
 
             } catch (CardException e) {
                 setError(error,e);

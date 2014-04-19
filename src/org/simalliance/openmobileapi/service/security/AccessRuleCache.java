@@ -83,6 +83,11 @@ public class AccessRuleCache {
 
             // if new ac condition is more restrictive then use their settings
 
+                if( channelAccess.getAccess() == ChannelAccess.ACCESS.DENIED ||
+                    ca.getAccess() == ChannelAccess.ACCESS.UNDEFINED ) {
+                    ca.setAccess(channelAccess.getAccess(), channelAccess.getReason());
+                }
+
             // if new rule says NFC is denied then use it
             // if current rule as undefined NFC rule then use setting of new rule.
             // current NFC    new NFC        resulting NFC
@@ -109,7 +114,6 @@ public class AccessRuleCache {
                 ca.setApduAccess(channelAccess.getApduAccess());
             }
 
-
             // put APDU filter together if resulting APDU access is allowed.
             if( ca.getApduAccess() == ChannelAccess.ACCESS.ALLOWED ){
                 if( channelAccess.isUseApduFilter() ){
@@ -133,7 +137,7 @@ public class AccessRuleCache {
                     }
                 }
             } else {
-                // if APDU access is not allowed the remove also all apdu filter
+                // if APDU access is not allowed the remove also all apdu filter.
                 ca.setUseApduFilter(false);
                 ca.setApduFilter(null);
             }
