@@ -64,6 +64,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
 
     public static final String _TAG = "IChannel";
 
+
     Channel(SmartcardServiceSession session, Terminal terminal, int channelNumber, ISmartcardServiceCallback callback) {
         this.mChannelNumber = channelNumber;
         this.mSession = session;
@@ -76,9 +77,6 @@ class Channel implements IChannel, IBinder.DeathRecipient {
             mBinder.linkToDeath(this, 0);
         } catch (RemoteException e) {
             Log.e(SmartcardService._TAG, "Failed to register client callback");
-        }
-        if (this.mSelectResponse != null) {
-            Log.i(_TAG, "Channel(): mSelectResponse = " + ByteArrayToString(this.mSelectResponse, 0));
         }
     }
 
@@ -222,7 +220,6 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                                 maxExpectedResponseDataLength = command[4] & 0xff;
                                 if (maxExpectedResponseDataLength == 0)
                                     maxExpectedResponseDataLength = 256;
-                                Log.i(_TAG, "transmit(): Lc absent, Le = " + command[4]);
                             }
                             else if ((command.length == 7) &&
                                      (command[4] == (byte) 0x00)) { // only with extended Le (3 bytes)
@@ -234,7 +231,6 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                                 if (maxExpectedResponseDataLength == 0)
                                     maxExpectedResponseDataLength = 65536;
 
-                                Log.i(_TAG, "transmit(): Lc absent, Le = " + maxExpectedResponseDataLength);
                             }
                             // if this has extended Lc field
                             else if (command[4] == (byte) 0x00) {
@@ -273,10 +269,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                             }
 
                             if (startIndexLeField > 0) {
-                                if (command.length == startIndexLeField) {
-                                    Log.i(_TAG, "transmit(): Lc = " + commandDataLength + " Le absent");
-                                }
-                                else {
+                                if (command.length != startIndexLeField) {
                                     if ((sizeOfLcField == 3) &&
                                         (command.length != startIndexLeField + 2)) {
                                         throw new IllegalArgumentException("Invalid Le field with extended Lc field");
@@ -298,12 +291,6 @@ class Channel implements IChannel, IBinder.DeathRecipient {
                                         throw new IllegalArgumentException("Invalid Le field");
                                     }
 
-                                    Log.i(_TAG, "transmit(): Lc = " + commandDataLength + " Le = " + maxExpectedResponseDataLength);
-                                }
-                            }
-                            else {
-                                if (commandDataLength > 0) {
-                                    Log.i(_TAG, "transmit(): Lc = " + commandDataLength + " Le absent");
                                 }
                             }
                         }
@@ -546,7 +533,6 @@ class Channel implements IChannel, IBinder.DeathRecipient {
 
                 return response;
             } catch (Exception e) {
-                Log.v(SmartcardService._TAG, "transmit Exception: " + e.getMessage() + " (Command: " + Util.bytesToString(command) + ")");
                 SmartcardService.setError(error, e);
                 return null;
             }

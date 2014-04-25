@@ -88,6 +88,7 @@ public final class SmartcardService extends Service {
     public static final String _eSE_TERMINAL = "eSE";
     public static final String _SD_TERMINAL = "SD";
 
+
     static void clearError(SmartcardError error) {
         if (error != null) {
             error.clear();
@@ -411,8 +412,6 @@ public final class SmartcardService extends Service {
                             seTypeName = new String ("UNKNOWN");
                     }
 
-                    //Log.i(_TAG, "got AID_SELECTED AID:" + strAid + " DATA:" + strData + " SE:" + seTypeName);
-
                     if (seTypeName.startsWith("UNKNOWN"))
                         return;
                 }
@@ -513,7 +512,6 @@ public final class SmartcardService extends Service {
                                 if (nfcEventAccessFinal[i]) {
                                     if (packageNames[i].equals("org.simalliance.openmobileapi.service"))
                                         continue;
-                                    //Log.i(_TAG, "granted :" + packageNames[i]);
                                     intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
                                     intent.setPackage(packageNames[i]);
                                     try {
@@ -521,8 +519,6 @@ public final class SmartcardService extends Service {
                                     } catch (Exception ignore) {
                                         //ignore
                                     }
-                                } else {
-                                    //Log.i(_TAG, "denied : " + packageNames[i]);
                                 }
                             }
                         }
