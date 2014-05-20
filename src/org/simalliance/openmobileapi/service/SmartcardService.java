@@ -43,9 +43,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.net.Uri;
 
 import android.nfc.INfcAdapterExtras;
 import android.nfc.NfcAdapter;
+import com.android.qcom.nfc_extras.*;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
@@ -346,6 +348,7 @@ public final class SmartcardService extends Service {
         intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED");
         intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED");
         intentFilter.addAction("com.android.nfc_extras.action.AID_SELECTED");
+        intentFilter.addAction("org.simalliance.openmobileapi.service.ACTION_CHECK_CERT");
 
         mNfcEventReceiver = new BroadcastReceiver() {
             @Override
@@ -355,8 +358,7 @@ public final class SmartcardService extends Service {
                 boolean nfcAdapterExtraActionAidSelected = false;
                 byte[] aid = null;
                 byte[] data = null;
-                byte[] seId = null;
-                String seTypeName = null;
+                String seName = null;
 
                 String action = intent.getAction();
 
@@ -370,66 +372,67 @@ public final class SmartcardService extends Service {
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                     Log.i(_TAG, "got RF_FIELD_OFF_DETECTED");
                 }
+                else if (action.equals("org.simalliance.openmobileapi.service.ACTION_CHECK_CERT")){
+                    Log.i(_TAG, "got ACTION_CHECK_CERT");
+                    seName = intent.getStringExtra("org.simalliance.openmobileapi.service.EXTRA_SE_NAME");
+                    String pkg = intent.getStringExtra("org.simalliance.openmobileapi.service.EXTRA_PKG");
+                    Log.i(_TAG, "SE_NAME : " + seName + ", PKG : " + pkg);
+
+                    NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(context);
+                    if (nfcQcomAdapter == null) {
+                        Log.i(_TAG, "Couldn't get NfcQcomAdapter");
+                        return;
+                    }
+
+                    SmartcardError error = new SmartcardError();
+                    ITerminal terminal = getTerminal(seName, error);
+                    if (terminal == null) {
+                        Log.i(_TAG, "Couldn't get terminal for " + seName);
+                        return;
+                    }
+
+                    AccessControlEnforcer acEnforcer;
+                    acEnforcer = terminal.getAccessControlEnforcer();
+                    if( acEnforcer == null ) {
+                        Log.i(_TAG, "Couldn't get AccessControlEnforcer for " + seName);
+                        nfcQcomAdapter.notifyCheckCertResult(false);
+                        return;
+                    }
+
+                    Log.i(_TAG, "Checking access rules for " + seName);
+
+                    try {
+                        if (acEnforcer.hasCertificate(pkg)) {
+                            nfcQcomAdapter.notifyCheckCertResult(true);
+                        } else {
+                            nfcQcomAdapter.notifyCheckCertResult(false);
+                        }
+                    } catch (Exception e) {
+                        nfcQcomAdapter.notifyCheckCertResult(false);
+                    }
+                    return;
+                }
                 else if (action.equals("com.android.nfc_extras.action.AID_SELECTED")){
                     nfcAdapterExtraActionAidSelected = true;
                     aid = intent.getByteArrayExtra("com.android.nfc_extras.extra.AID");
                     data = intent.getByteArrayExtra("com.android.nfc_extras.extra.DATA");
-                    seId = intent.getByteArrayExtra("com.android.nfc_extras.extra.SEID");
+                    seName = intent.getStringExtra("com.android.nfc_extras.extra.SE_NAME");
 
-                    StringBuffer strAid = new StringBuffer();
-                    if (aid == null) {
-                        strAid.append("empty");
-                    } else {
-                        for (int i = 0; i < aid.length; i++) {
-                            String hex = Integer.toHexString(0xFF & aid[i]);
-                            if (hex.length() == 1)
-                                strAid.append('0');
-                            strAid.append(hex);
-                        }
-                    }
-
-                    StringBuffer strData = new StringBuffer();
-                    if (data == null) {
-                        strData.append("empty");
-                    } else {
-                        for (int i = 0; i < data.length; i++) {
-                            String hex = Integer.toHexString(0xFF & data[i]);
-                            if (hex.length() == 1)
-                               strData.append('0');
-                            strData.append(hex);
-                        }
-                    }
-
-                    if (seId == null) {
-                        seTypeName = new String ("UNKNOWN");
-                    }
-                    else {
-                        if (seId[0] == 1)
-                            seTypeName = new String (_UICC_TERMINAL);
-                        else if (seId[0] == 2)
-                            seTypeName = new String (_eSE_TERMINAL);
-                        else
-                            seTypeName = new String ("UNKNOWN");
-                    }
-
-                    if (seTypeName.startsWith("UNKNOWN"))
+                    if ((aid == null)||(seName == null)) {
+                        Log.i(_TAG, "got AID_SELECTED AID without AID or SE Name");
                         return;
+                    }
                 }
                 else {
                     Log.i(_TAG, "mNfcEventReceiver got unexpected intent:" + intent.getAction());
+                    return;
                 }
 
                 try
                 {
-                    NfcAdapter adapter =  NfcAdapter.getDefaultAdapter(context);
-                    if(adapter == null) {
-                        Log.i(_TAG, "Couldn't get NfcAdaptor");
-                        return;
-                    }
-
-                    INfcAdapterExtras ex = adapter.getNfcAdapterExtrasInterface();
-                    if(ex == null)  {
-                        Log.i(_TAG, "Couldn't get NfcAdapterExtras");
+                    NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(context);
+                    if (nfcQcomAdapter == null) {
+                        Log.i(_TAG, "Couldn't get NfcQcomAdapter");
                         return;
                     }
 
@@ -474,32 +477,24 @@ public final class SmartcardService extends Service {
                                 }
                             }
                         }
-                    }
-
-                    if (nfcAdapterExtraActionAidSelected) {
+                    } else if (nfcAdapterExtraActionAidSelected) {
                         SmartcardError error = new SmartcardError();
                         AccessControlEnforcer acEnforcer;
 
-                        String readerName = null;
-                        String readers[] = updateTerminals();
-                        for (int i = 0; i < readers.length; i++) {
-                            if (readers[i].startsWith(seTypeName)) {
-                                readerName = new String(readers[i]);
-                                break;
-                            }
-                        }
-                        if (readerName == null) {
-                            Log.i(_TAG, "Couldn't find reader for " + readerName);
+                        ITerminal terminal = getTerminal(seName, error);
+                        if (terminal == null) {
+                            Log.i(_TAG, "Couldn't get terminal for " + seName);
                             return;
                         }
 
-                        acEnforcer = getTerminal(readerName, error).getAccessControlEnforcer();
+                        acEnforcer = terminal.getAccessControlEnforcer();
+
                         if( acEnforcer == null ) {
-                            Log.i(_TAG, "Couldn't get AccessControlEnforcer for " + readerName);
+                            Log.i(_TAG, "Couldn't get AccessControlEnforcer for " + seName);
                             return;
                         }
 
-                        Log.i(_TAG, "Checking access rules for AID Selected for " + readerName);
+                        Log.i(_TAG, "Checking access rules for AID Selected for " + seName);
 
                         acEnforcer.setPackageManager(getPackageManager());
                         nfcEventAccessFinal = acEnforcer.isNFCEventAllowed(aid, packageNames,
@@ -515,7 +510,7 @@ public final class SmartcardService extends Service {
                                     intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
                                     intent.setPackage(packageNames[i]);
                                     try {
-                                        ex.deliverSeIntent("org.simalliance.openmobileapi.service", intent);
+                                        nfcQcomAdapter.deliverSeIntent(intent);
                                     } catch (Exception ignore) {
                                         //ignore
                                     }
@@ -687,7 +682,13 @@ public final class SmartcardService extends Service {
         ArrayList<String> list = new ArrayList<String>(names);
         Collections.sort(list);
 
-        // set UICC on the top
+        // set UICC on the top , SIM - UICC/SIM2 and then eSE1/eSE2
+        if(list.remove(_eSE_TERMINAL + "2"))
+            list.add(0, _eSE_TERMINAL + "2");
+        if(list.remove(_eSE_TERMINAL + "1"))
+            list.add(0, _eSE_TERMINAL + "1");
+        if(list.remove(_UICC_TERMINAL + "2"))
+            list.add(0, _UICC_TERMINAL + "2");
         if(list.remove(_UICC_TERMINAL + " - UICC"))
             list.add(0, _UICC_TERMINAL + " - UICC");
 
@@ -707,7 +708,13 @@ public final class SmartcardService extends Service {
         ArrayList<String> list = new ArrayList<String>(names);
         Collections.sort(list);
 
-        // set UICC on the top
+        // set UICC on the top , SIM - UICC /SIM2 and then eSE1/eSE2
+        if(list.remove(_eSE_TERMINAL + "2"))
+            list.add(0, _eSE_TERMINAL + "2");
+        if(list.remove(_eSE_TERMINAL + "1"))
+            list.add(0, _eSE_TERMINAL + "1");
+        if(list.remove(_UICC_TERMINAL + "2"))
+            list.add(0, _UICC_TERMINAL + "2");
         if(list.remove(_UICC_TERMINAL + " - UICC"))
             list.add(0, _UICC_TERMINAL + " - UICC");
 
@@ -725,20 +732,32 @@ public final class SmartcardService extends Service {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private void createBuildinTerminals() {
         Class[] types = new Class[] {
-            Context.class
+            Context.class, int.class
         };
         Object[] args = new Object[] {
-            this
+            this, 0
         };
         Object[] classes = getBuildinTerminalClasses();
         for (Object clazzO : classes) {
             try {
                 Class clazz = (Class) clazzO;
                 Constructor constr = clazz.getDeclaredConstructor(types);
-                ITerminal terminal = (ITerminal) constr.newInstance(args);
-                mTerminals.put(terminal.getName(), terminal);
-                Log.v(_TAG, Thread.currentThread().getName() + " adding "
-                        + terminal.getName());
+
+                int numSlots;
+                if (constr.getName().endsWith("UiccTerminal")) {
+                    numSlots = 2;
+                } else if (constr.getName().endsWith("SmartMxTerminal")) {
+                    numSlots = 2;
+                } else {
+                    numSlots = 1;
+                }
+                for (int slot = 0; slot < numSlots; slot++) {
+                    args[1] = slot;
+                    ITerminal terminal = (ITerminal) constr.newInstance(args);
+                    mTerminals.put(terminal.getName(), terminal);
+                    Log.v(_TAG, Thread.currentThread().getName() + " adding "
+                            + terminal.getName());
+                }
             } catch (Throwable t) {
                 Log.e(_TAG, Thread.currentThread().getName()
                         + " CreateReaders Error: "

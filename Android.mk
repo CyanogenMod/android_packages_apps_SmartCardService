@@ -8,7 +8,7 @@ LOCAL_AIDL_INCLUDES := packages/apps/SmartCardService/openmobileapi/src/org/sima
 LOCAL_PACKAGE_NAME := SmartcardService
 LOCAL_CERTIFICATE := platform
 
-LOCAL_JAVA_LIBRARIES := core framework org.simalliance.openmobileapi
+LOCAL_JAVA_LIBRARIES := core framework org.simalliance.openmobileapi com.android.qcom.nfc_extras
 
 LOCAL_PROGUARD_ENABLED := disabled
 

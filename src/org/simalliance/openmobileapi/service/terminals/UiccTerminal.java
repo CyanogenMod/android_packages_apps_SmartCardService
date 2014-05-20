@@ -39,7 +39,7 @@ import java.util.NoSuchElementException;
 
 public class UiccTerminal extends Terminal {
 
-    public static final String _TAG = "UiccTerminal";
+    public final String _TAG;
 
     private ITelephony manager = null;
 
@@ -47,14 +47,21 @@ public class UiccTerminal extends Terminal {
 
     private String currentSelectedFilePath = "";
 
-    public UiccTerminal(Context context) {
-        super(SmartcardService._UICC_TERMINAL + " - UICC", context);
+    private static final String slotStr[] = new String[] {" - UICC", "2"};
+
+    private final int mUiccSlot;
+
+    public UiccTerminal(Context context, int slot) {
+        super(SmartcardService._UICC_TERMINAL + slotStr[slot], context);
 
         try {
             manager = ITelephony.Stub.asInterface(ServiceManager
                     .getService(Context.TELEPHONY_SERVICE));
         } catch (Exception ex) {
         }
+
+        mUiccSlot = slot;
+        _TAG = SmartcardService._UICC_TERMINAL + slotStr[slot];
 
         for (int i = 0; i < channelId.length; i++)
             channelId[i] = 0;
@@ -64,13 +71,16 @@ public class UiccTerminal extends Terminal {
         String prop = SystemProperties
                 .get(TelephonyProperties.PROPERTY_SIM_STATE);
 
-                Log.i(_TAG, "isCardPresent(): PROPERTY_SIM_STATE=" + prop);
+        Log.i(_TAG, "isCardPresent(): PROPERTY_SIM_STATE=" + prop);
 
-                //if ("READY".equals(prop)) {
-                if (prop.startsWith("READY")) {
+        String[] simStatusStr = prop.split(",");
+
+        if ((simStatusStr.length > mUiccSlot)&&
+            (simStatusStr[mUiccSlot].equals("READY"))) {
             return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     @Override
