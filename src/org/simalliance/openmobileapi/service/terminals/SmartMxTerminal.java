@@ -43,21 +43,19 @@ public class SmartMxTerminal extends Terminal {
     private INfcAdapterExtras ex;
     private Binder binder = new Binder();
 
-    private static final String numStr[] = new String[] {"1", "2"};
-
     private final int mSeId;
 
     public SmartMxTerminal(Context context, int seId) {
-        super(SmartcardService._eSE_TERMINAL + numStr[seId], context);
+        super(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[seId], context);
         mSeId = seId;
-        TAG = SmartcardService._eSE_TERMINAL + numStr[seId];
+        TAG = SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[seId];
     }
 
     public boolean isCardPresent() throws CardException {
         try {
             NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(mContext);
             if (nfcQcomAdapter != null) {
-                return nfcQcomAdapter.isSeEnabled(SmartcardService._eSE_TERMINAL + numStr[mSeId]);
+                return nfcQcomAdapter.isSeEnabled(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[mSeId]);
             } else {
                 Log.d (TAG, "cannot get NfcQcomAdapter");
                 return false;
@@ -80,12 +78,19 @@ public class SmartMxTerminal extends Terminal {
         }
 
         try {
+            NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(mContext);
+            if (nfcQcomAdapter != null) {
+                nfcQcomAdapter.selectSEToOpenApduGate(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[mSeId]);
+            } else {
+                throw new CardException("cannot get NfcQcomAdapter");
+            }
+
             Bundle b = ex.open("org.simalliance.openmobileapi.service", binder);
             if (b == null) {
                 throw new CardException("open SE failed");
             }
         } catch (Exception e) {
-            throw new CardException("open SE failed");
+            throw new CardException("open SE failed:" + e.getMessage());
         }
         mDefaultApplicationSelectedOnBasicChannel = true;
         mIsConnected = true;
