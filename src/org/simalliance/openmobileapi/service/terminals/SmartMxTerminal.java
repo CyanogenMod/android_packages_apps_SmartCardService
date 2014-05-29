@@ -22,6 +22,7 @@ package org.simalliance.openmobileapi.service.terminals;
 import android.content.Context;
 import android.nfc.INfcAdapterExtras;
 import android.nfc.NfcAdapter;
+import com.android.qcom.nfc_extras.*;
 import android.os.Binder;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,26 +38,28 @@ import org.simalliance.openmobileapi.service.Terminal;
 
 public class SmartMxTerminal extends Terminal {
 
+    private final String TAG;
+
     private INfcAdapterExtras ex;
     private Binder binder = new Binder();
 
-    public SmartMxTerminal(Context context) {
-        super(SmartcardService._eSE_TERMINAL + " - SmartMX", context);
+    private static final String numStr[] = new String[] {"1", "2"};
+
+    private final int mSeId;
+
+    public SmartMxTerminal(Context context, int seId) {
+        super(SmartcardService._eSE_TERMINAL + numStr[seId], context);
+        mSeId = seId;
+        TAG = SmartcardService._eSE_TERMINAL + numStr[seId];
     }
 
     public boolean isCardPresent() throws CardException {
         try {
-            NfcAdapter adapter =  NfcAdapter.getDefaultAdapter(mContext);
-            if(adapter == null) {
-                //throw new CardException("Cannot get NFC Default Adapter");
-                return false;
+            NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(mContext);
+            if (nfcQcomAdapter != null) {
+                return nfcQcomAdapter.isSeEnabled(SmartcardService._eSE_TERMINAL + numStr[mSeId]);
             } else {
-                if(adapter.isEnabled()) {
-                    ex = adapter.getNfcAdapterExtrasInterface();
-                    if(ex != null)  {
-                        return ex.isSeEnabled("org.simalliance.openmobileapi.service", 2);
-                    }
-                }
+                Log.d (TAG, "cannot get NfcQcomAdapter");
                 return false;
             }
         } catch (Exception e) {

@@ -44,6 +44,7 @@ public class AccessRuleCache {
     // a pure static element would cause that rules are not read any longer once the AxxController is recreated.
     private byte[]  mRefreshTag=null;
 
+    final private boolean DBG = false;
 
     private Map<REF_DO, ChannelAccess> mRuleCache = new HashMap<REF_DO, ChannelAccess>();
 
@@ -395,6 +396,47 @@ public class AccessRuleCache {
         this.mRefreshTag = refreshTag;
     }
 
+    static String bytesToString(byte[] bytes, int offset, int length) {
+        final char[] hexChars = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        char[] chars = new char[length * 2];
+        int byteValue;
+        for (int j = 0; j < length; j++) {
+            byteValue = bytes[offset + j] & 0xFF;
+            chars[j * 2] = hexChars[byteValue >>> 4];
+            chars[j * 2 + 1] = hexChars[byteValue & 0x0F];
+        }
+        return new String(chars);
+    }
+
+    public boolean findCertificates(Certificate[] appCerts){
+        byte[] appCertHash;
+        for( Certificate appCert : appCerts ){
+            try {
+                appCertHash = AccessControlEnforcer.getAppCertHash(appCert);
+            } catch (CertificateEncodingException e) {
+                Log.e(SmartcardService._TAG, "Problem with Application Certificate.");
+                return false;
+            }
+
+            if (DBG) Log.e(SmartcardService._TAG, "appCertHash = " + bytesToString(appCertHash, 0, appCertHash.length));
+
+            Set<REF_DO> keySet = mRuleCache.keySet();
+            Iterator<REF_DO> iter = keySet.iterator();
+            while(iter.hasNext()){
+                REF_DO ref_do = iter.next();
+                if(ref_do.getHashDo() != null){
+                    byte[] hash = ref_do.getHashDo().getHash();
+                    if ((hash != null) && (hash.length > 0)) {
+                        if (DBG) Log.e(SmartcardService._TAG, "hash = " + bytesToString(hash, 0, hash.length));
+                        if (Arrays.equals(hash, appCertHash)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     public void dump(PrintWriter writer, String prefix) {
         writer.println(prefix + SmartcardService._TAG + ":");

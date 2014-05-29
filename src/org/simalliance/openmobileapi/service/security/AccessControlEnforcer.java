@@ -478,6 +478,48 @@ public class AccessControlEnforcer {
         return mNfcEventFlags;
     }
 
+    public synchronized boolean hasCertificate(String packageName)
+    {
+        // check result of channel access during initialization procedure
+        if( mInitialChannelAccess.getAccess() == ChannelAccess.ACCESS.DENIED ){
+            Log.e(SmartcardService._TAG, "access denied: " + mInitialChannelAccess.getReason() );
+            return false;
+        }
+
+        if (packageName == null || packageName.isEmpty()) {
+            Log.e(SmartcardService._TAG, "package names must be specified");
+            return false;
+        }
+
+        if( mUseAra || mUseArf ){
+            Certificate[] appCerts;
+            try {
+                appCerts = getAPPCerts(packageName);
+            } catch (Throwable exp) {
+                Log.e(SmartcardService._TAG, "cannot get Certs:" + exp.getMessage());
+                return false;
+            }
+
+            // APP certificates must be available => otherwise Exception
+            if (appCerts == null || appCerts.length == 0) {
+                Log.e(SmartcardService._TAG, "Application certificates are invalid or do not exist.");
+                return false;
+            }
+
+            // if read all is true get rule from cache.
+            if( mRulesRead ){
+                // get rules from internal storage
+                return mAccessRuleCache.findCertificates(appCerts);
+            }
+
+            Log.e(SmartcardService._TAG, "no access rule found!");
+            return false;
+        } else {
+            // if ARA and ARF is not available and terminal DOES NOT belong to a UICC -> mFullAccess is true
+            // if ARA and ARF is not available and terminal belongs to a UICC -> mFullAccess is false
+            return this.mFullAccess;
+        }
+    }
 
     public void dump(PrintWriter writer, String prefix) {
        writer.println(prefix + SmartcardService._TAG + ":");

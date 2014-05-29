@@ -131,8 +131,10 @@ public class SEService {
             }
         };
 
-        boolean bindingSuccessful = mContext.bindService(new Intent(ISmartcardService.class
-                .getName()), mConnection, Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(ISmartcardService.class.getName());
+        intent.setClassName("org.simalliance.openmobileapi.service",
+                            "org.simalliance.openmobileapi.service.SmartcardService");
+        boolean bindingSuccessful = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         if (bindingSuccessful) {
             Log.v(SERVICE_TAG, "bindService successful");
         }
@@ -170,12 +172,14 @@ public class SEService {
             throw new RuntimeException(e);
         }
 
+        Reader[] readers = new Reader[readerNames.length];
+        int i = 0;
         mReaders.clear();
         for (String readerName : readerNames) {
             mReaders.put(readerName, new Reader( this, readerName ));
+            readers[i++] = mReaders.get(readerName);
         }
-        Collection<Reader> col = mReaders.values();
-        return col.toArray(new Reader[col.size()]);
+        return readers;
     }
 
     /**

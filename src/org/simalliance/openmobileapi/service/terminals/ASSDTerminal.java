@@ -33,8 +33,13 @@ final class ASSDTerminal extends Terminal {
 
     private static boolean JNILoaded = false;
 
-    public ASSDTerminal(Context context) {
-        super(SmartcardService._SD_TERMINAL + " - Secure SD Card", context);
+    private static final String slotStr[] = new String[] {"1", "2"};
+
+    private final int mSlot;
+
+    public ASSDTerminal(Context context, int slot) {
+        super(SmartcardService._SD_TERMINAL + slotStr[slot], context);
+        mSlot = slot;
     }
 
     @Override
