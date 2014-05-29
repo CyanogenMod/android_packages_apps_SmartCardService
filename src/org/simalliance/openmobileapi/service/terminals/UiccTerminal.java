@@ -33,6 +33,7 @@ import android.util.Log;
 
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.TelephonyProperties;
+import com.android.internal.telephony.msim.ITelephonyMSim;
 
 import java.util.MissingResourceException;
 import java.util.NoSuchElementException;
@@ -43,25 +44,35 @@ public class UiccTerminal extends Terminal {
 
     private ITelephony manager = null;
 
+    private ITelephonyMSim mMsimManager = null;
+
     private int[] channelId = new int[20];
 
     private String currentSelectedFilePath = "";
 
-    private static final String slotStr[] = new String[] {" - UICC", "2"};
-
     private final int mUiccSlot;
 
     public UiccTerminal(Context context, int slot) {
-        super(SmartcardService._UICC_TERMINAL + slotStr[slot], context);
+        super(SmartcardService._UICC_TERMINAL + SmartcardService._UICC_TERMINAL_EXT[slot], context);
 
-        try {
-            manager = ITelephony.Stub.asInterface(ServiceManager
-                    .getService(Context.TELEPHONY_SERVICE));
-        } catch (Exception ex) {
+        if (SmartcardService.mIsMultiSimEnabled) {
+            try {
+                mMsimManager = ITelephonyMSim.Stub.asInterface(ServiceManager
+                        .getService(Context.MSIM_TELEPHONY_SERVICE));
+            } catch (Exception ex) {
+            }
+        } else {
+            try {
+                manager = ITelephony.Stub.asInterface(ServiceManager
+                        .getService(Context.TELEPHONY_SERVICE));
+            } catch (Exception ex) {
+            }
         }
 
         mUiccSlot = slot;
-        _TAG = SmartcardService._UICC_TERMINAL + slotStr[slot];
+        _TAG = SmartcardService._UICC_TERMINAL + SmartcardService._UICC_TERMINAL_EXT[slot];
+
+        Log.i(_TAG, "UiccTerminal(): mIsMultiSimEnabled = " + SmartcardService.mIsMultiSimEnabled);
 
         for (int i = 0; i < channelId.length; i++)
             channelId[i] = 0;
@@ -85,8 +96,14 @@ public class UiccTerminal extends Terminal {
 
     @Override
     protected void internalConnect() throws CardException {
-        if (manager == null) {
-            throw new CardException("Cannot connect to Telephony Service");
+        if (SmartcardService.mIsMultiSimEnabled) {
+            if (mMsimManager == null) {
+                throw new CardException("Cannot connect to MSIM Telephony Service");
+            }
+        } else {
+            if (manager == null) {
+                throw new CardException("Cannot connect to Telephony Service");
+            }
         }
         mIsConnected = true;
     }
@@ -153,9 +170,15 @@ public class UiccTerminal extends Terminal {
         if (channelNumber == 0) {
 
             try {
-                String response = manager.transmitIccBasicChannel(cla, ins, p1,
-                        p2, p3, data);
-                return StringToByteArray(response);
+                if (SmartcardService.mIsMultiSimEnabled) {
+                    String response = mMsimManager.transmitIccBasicChannel(cla, ins, p1,
+                            p2, p3, data, mUiccSlot);
+                    return StringToByteArray(response);
+                } else {
+                    String response = manager.transmitIccBasicChannel(cla, ins, p1,
+                            p2, p3, data);
+                    return StringToByteArray(response);
+                }
             } catch (Exception ex) {
                 throw new CardException("transmit command failed");
             }
@@ -166,8 +189,13 @@ public class UiccTerminal extends Terminal {
             }
 
             try {
-                String response = manager.transmitIccLogicalChannel(cla, ins, channelId[channelNumber], p1, p2, p3, data);
-                return StringToByteArray(response);
+                if (SmartcardService.mIsMultiSimEnabled) {
+                    String response = mMsimManager.transmitIccLogicalChannel(cla, ins, channelId[channelNumber], p1, p2, p3, data, mUiccSlot);
+                    return StringToByteArray(response);
+                } else {
+                    String response = manager.transmitIccLogicalChannel(cla, ins, channelId[channelNumber], p1, p2, p3, data);
+                    return StringToByteArray(response);
+                }
             } catch (Exception ex) {
                 throw new CardException("transmit command failed");
             }
@@ -184,8 +212,13 @@ public class UiccTerminal extends Terminal {
     @Override
     public byte[] getAtr() {
         try {
-            byte[] atr = manager.getATR();
-            return atr;
+            if (SmartcardService.mIsMultiSimEnabled) {
+                byte[] atr = mMsimManager.getATR(mUiccSlot);
+                return atr;
+            } else {
+                byte[] atr = manager.getATR();
+                return atr;
+            }
         } catch (Exception e) {
             throw new IllegalStateException("internal error: getAtr() execution: "
                     + e.getCause());
@@ -223,9 +256,13 @@ public class UiccTerminal extends Terminal {
                 currentSelectedFilePath = filePath;
             }
 
-            byte[] ret = manager.transmitIccSimIO(fileID, ins, p1, p2, p3, currentSelectedFilePath);
-
-            return ret;
+            if (SmartcardService.mIsMultiSimEnabled) {
+                byte[] ret = mMsimManager.transmitIccSimIO(fileID, ins, p1, p2, p3, currentSelectedFilePath, mUiccSlot);
+                return ret;
+            } else {
+                byte[] ret = manager.transmitIccSimIO(fileID, ins, p1, p2, p3, currentSelectedFilePath);
+                return ret;
+            }
         } catch (Exception e) {
             throw new Exception("SIM IO access error");
     }}
@@ -271,12 +308,20 @@ public class UiccTerminal extends Terminal {
         mSelectResponse = null;
         for (int i = 1; i < channelId.length; i++)
             if (channelId[i] == 0) {
-                channelId[i] = manager.openIccLogicalChannel(ByteArrayToString(
-                        aid, 0));
+                if (SmartcardService.mIsMultiSimEnabled) {
+                    channelId[i] = mMsimManager.openIccLogicalChannel(ByteArrayToString(aid, 0), mUiccSlot);
+                } else {
+                    channelId[i] = manager.openIccLogicalChannel(ByteArrayToString(aid, 0));
+                }
 
                 if (!(channelId[i] > 0)) { // channelId[i] == 0
                     channelId[i] = 0;
-                    int lastError = manager.getLastError();
+                    int lastError;
+                    if (SmartcardService.mIsMultiSimEnabled) {
+                        lastError = mMsimManager.getLastError(mUiccSlot);
+                    } else {
+                        lastError = manager.getLastError();
+                    }
 
                     if (lastError == 2) {
                         throw new MissingResourceException(
@@ -318,8 +363,14 @@ public class UiccTerminal extends Terminal {
             throw new CardException("channel not open");
         }
         try {
-            if (manager.closeIccLogicalChannel(channelId[channelNumber]) == false) {
-                throw new CardException("close channel failed");
+            if (SmartcardService.mIsMultiSimEnabled) {
+                if (mMsimManager.closeIccLogicalChannel(channelId[channelNumber], mUiccSlot) == false) {
+                    throw new CardException("close channel failed");
+                }
+            } else {
+                if (manager.closeIccLogicalChannel(channelId[channelNumber]) == false) {
+                    throw new CardException("close channel failed");
+                }
             }
         } catch (Exception ex) {
             throw new CardException("close channel failed");

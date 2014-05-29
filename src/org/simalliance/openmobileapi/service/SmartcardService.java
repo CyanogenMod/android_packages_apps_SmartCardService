@@ -43,7 +43,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.os.SystemProperties;
+
 import android.net.Uri;
+
+import com.android.internal.telephony.TelephonyProperties;
 
 import android.nfc.INfcAdapterExtras;
 import android.nfc.NfcAdapter;
@@ -90,6 +94,11 @@ public final class SmartcardService extends Service {
     public static final String _eSE_TERMINAL = "eSE";
     public static final String _SD_TERMINAL = "SD";
 
+    public static String _UICC_TERMINAL_EXT[] = new String[] {"1", "2"};
+    public static String _eSE_TERMINAL_EXT[] = new String[] {"1", "2"};
+    public static String _SD_TERMINAL_EXT[] = new String[] {"1", "2"};
+
+    public static boolean mIsMultiSimEnabled;
 
     static void clearError(SmartcardError error) {
         if (error != null) {
@@ -175,6 +184,13 @@ public final class SmartcardService extends Service {
 
         // Get the HandlerThread's Looper and use it for our Handler
         mServiceHandler = new ServiceHandler(thread.getLooper());
+
+        String multiSimConfig = SystemProperties.get(TelephonyProperties.PROPERTY_MULTI_SIM_CONFIG);
+        Log.v(_TAG, "multiSimConfig = " + multiSimConfig);
+
+        mIsMultiSimEnabled = (multiSimConfig.equals("dsds") ||
+                              multiSimConfig.equals("dsda") ||
+                              multiSimConfig.equals("tsts"));
 
         updatePackageCache();
 
@@ -682,15 +698,15 @@ public final class SmartcardService extends Service {
         ArrayList<String> list = new ArrayList<String>(names);
         Collections.sort(list);
 
-        // set UICC on the top , SIM - UICC/SIM2 and then eSE1/eSE2
-        if(list.remove(_eSE_TERMINAL + "2"))
-            list.add(0, _eSE_TERMINAL + "2");
-        if(list.remove(_eSE_TERMINAL + "1"))
-            list.add(0, _eSE_TERMINAL + "1");
-        if(list.remove(_UICC_TERMINAL + "2"))
-            list.add(0, _UICC_TERMINAL + "2");
-        if(list.remove(_UICC_TERMINAL + " - UICC"))
-            list.add(0, _UICC_TERMINAL + " - UICC");
+        // set UICC on the top , SIM1(or SIM - UICC)/SIM2 and then eSE1/eSE2
+        if(list.remove(_eSE_TERMINAL + _eSE_TERMINAL_EXT[1]))
+            list.add(0, _eSE_TERMINAL + _eSE_TERMINAL_EXT[1]);
+        if(list.remove(_eSE_TERMINAL + _eSE_TERMINAL_EXT[0]))
+            list.add(0, _eSE_TERMINAL + _eSE_TERMINAL_EXT[0]);
+        if(list.remove(_UICC_TERMINAL + _UICC_TERMINAL_EXT[1]))
+            list.add(0, _UICC_TERMINAL + _UICC_TERMINAL_EXT[1]);
+        if(list.remove(_UICC_TERMINAL + _UICC_TERMINAL_EXT[0]))
+            list.add(0, _UICC_TERMINAL + _UICC_TERMINAL_EXT[0]);
 
         createAddonTerminals();
         names = mAddOnTerminals.keySet();
@@ -708,15 +724,15 @@ public final class SmartcardService extends Service {
         ArrayList<String> list = new ArrayList<String>(names);
         Collections.sort(list);
 
-        // set UICC on the top , SIM - UICC /SIM2 and then eSE1/eSE2
-        if(list.remove(_eSE_TERMINAL + "2"))
-            list.add(0, _eSE_TERMINAL + "2");
-        if(list.remove(_eSE_TERMINAL + "1"))
-            list.add(0, _eSE_TERMINAL + "1");
-        if(list.remove(_UICC_TERMINAL + "2"))
-            list.add(0, _UICC_TERMINAL + "2");
-        if(list.remove(_UICC_TERMINAL + " - UICC"))
-            list.add(0, _UICC_TERMINAL + " - UICC");
+        // set UICC on the top , SIM1(or SIM - UICC)/SIM2 and then eSE1/eSE2
+        if(list.remove(_eSE_TERMINAL + _eSE_TERMINAL_EXT[1]))
+            list.add(0, _eSE_TERMINAL + _eSE_TERMINAL_EXT[1]);
+        if(list.remove(_eSE_TERMINAL + _eSE_TERMINAL_EXT[0]))
+            list.add(0, _eSE_TERMINAL + _eSE_TERMINAL_EXT[0]);
+        if(list.remove(_UICC_TERMINAL + _UICC_TERMINAL_EXT[1]))
+            list.add(0, _UICC_TERMINAL + _UICC_TERMINAL_EXT[1]);
+        if(list.remove(_UICC_TERMINAL + _UICC_TERMINAL_EXT[0]))
+            list.add(0, _UICC_TERMINAL + _UICC_TERMINAL_EXT[0]);
 
         updateAddonTerminals();
         names = mAddOnTerminals.keySet();
@@ -738,6 +754,37 @@ public final class SmartcardService extends Service {
             this, 0
         };
         Object[] classes = getBuildinTerminalClasses();
+
+        String smartcardConfig = SystemProperties.get("persist.nfc.smartcard.config");
+        Log.v(_TAG, "smartcardConfig = " + smartcardConfig);
+        String[] terminals = smartcardConfig.split(",");
+        int numUiccTerminal = 0;
+        int numSmartMxTerminal = 0;
+        int numASSDTerminal = 0;
+        for (int i = 0; i < terminals.length; i++) {
+            if (terminals[i].startsWith("SIM")) {
+                if (numUiccTerminal < 2) {
+                    _UICC_TERMINAL_EXT[numUiccTerminal] = terminals[i].substring(3);
+                    numUiccTerminal++;
+                }
+            }
+            else if (terminals[i].startsWith("eSE")) {
+                if (numSmartMxTerminal < 2) {
+                    _eSE_TERMINAL_EXT[numSmartMxTerminal] = terminals[i].substring(3);
+                    numSmartMxTerminal++;
+                }
+            }
+            else if (terminals[i].startsWith("SD")) {
+                if (numASSDTerminal < 2) {
+                    _SD_TERMINAL_EXT[numASSDTerminal] = terminals[i].substring(2);
+                    numASSDTerminal++;
+                }
+            }
+        }
+
+        if ((!mIsMultiSimEnabled) && (numUiccTerminal > 1))
+            numUiccTerminal = 1;
+
         for (Object clazzO : classes) {
             try {
                 Class clazz = (Class) clazzO;
@@ -745,9 +792,11 @@ public final class SmartcardService extends Service {
 
                 int numSlots;
                 if (constr.getName().endsWith("UiccTerminal")) {
-                    numSlots = 2;
+                    numSlots = numUiccTerminal;
                 } else if (constr.getName().endsWith("SmartMxTerminal")) {
-                    numSlots = 2;
+                    numSlots = numSmartMxTerminal;
+                } else if (constr.getName().endsWith("ASSDTerminal")) {
+                    numSlots = numASSDTerminal;
                 } else {
                     numSlots = 1;
                 }
