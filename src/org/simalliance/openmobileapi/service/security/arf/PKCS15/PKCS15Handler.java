@@ -99,7 +99,13 @@ public class PKCS15Handler {
                 mACRulesObject=new EFACRules(mSEHandle);
             }
             mSEHandle.clearAccessRuleCache();
-            mACRulesObject.analyseFile(ACRulesPath);
+            try {
+                mACRulesObject.analyseFile(ACRulesPath);
+            } catch (Exception e) {
+                Log.v(TAG, "Exception: clear access rule cache and refresh tag");
+                mSEHandle.resetAccessRules();
+                throw e;
+            }
             return true;
         } else {
             Log.d(TAG, "Refresh Tag has not been changed...");

@@ -136,9 +136,14 @@ public class DERParser {
      */
     public short parseTLV(byte type)
     throws PKCS15Exception {
-        if (getTLVType()==type) {
-            mTLVDataSize=getTLVSize();
-        } else throw new PKCS15Exception("[Parser] Unexpected type");
+        byte typeInBuffer = getTLVType();
+        if (typeInBuffer == type) {
+            mTLVDataSize = getTLVSize();
+        } else {
+            Log.e(TAG, "parseTLV expected: " + type + " got:" + typeInBuffer);
+            Log.e(TAG, "parseTLV mDERIndex: " + mDERIndex + " mDERSize:" + mDERSize);
+            throw new PKCS15Exception("[Parser] Unexpected type");
+        }
         return mTLVDataSize;
     }
 
@@ -220,3 +225,4 @@ public class DERParser {
         return getTLVData();
     }
 }
+
