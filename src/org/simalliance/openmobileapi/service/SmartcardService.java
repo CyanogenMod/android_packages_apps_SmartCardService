@@ -277,11 +277,13 @@ public final class SmartcardService extends Service {
                     final boolean simLoaded = (extras != null) && "LOADED".equals(extras.getString("ss"));
                     if( simReady ){
                         Log.i(_TAG, "SIM is ready. Checking access rules for updates.");
-                        mServiceHandler.sendMessage(MSG_LOAD_UICC_RULES, 5);
                     }
                     else if( simLoaded){
                         Log.i(_TAG, "SIM is loaded. Checking access rules for updates.");
-                        mServiceHandler.sendMessage(MSG_LOAD_UICC_RULES, 5);
+                    }
+                    if (simReady || simLoaded) {
+                        mServiceHandler.sendMessage(MSG_LOAD_UICC_RULES, 0); // without retry
+                        unregisterSimStateChangedEvent(getApplicationContext()) ;
                     }
                 }
             }
