@@ -94,6 +94,28 @@ public final class SmartcardService extends Service {
     public static final String _eSE_TERMINAL = "eSE";
     public static final String _SD_TERMINAL = "SD";
 
+    //Open Mobile API Service package
+    private static final String OPENMOBILE_API_PACKAGE =
+            "org.simalliance.openmobileapi.service";
+
+    //RF actions
+    private static final String ACTION_RF_FIELD_ON_DETECTED =
+            "com.android.nfc_extras.action.RF_FIELD_ON_DETECTED";
+    private static final String ACTION_RF_FIELD_OFF_DETECTED =
+            "com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED";
+    private static final String ACTION_CHECK_CERT =
+            "org.simalliance.openmobileapi.service.ACTION_CHECK_CERT";
+    private static final String ACTION_AID_SELECTED =
+            "com.android.nfc_extras.action.AID_SELECTED";
+
+    //State changes
+    private static final String ACTION_SIM_STATE_CHANGED =
+            "android.intent.action.SIM_STATE_CHANGED";
+    private static final String ACTION_ADAPTER_STATE_CHANGED =
+            "android.nfc.action.ADAPTER_STATE_CHANGED";
+    private static final String ACTION_MEDIA_MOUNTED =
+            "android.intent.action.MEDIA_MOUNTED";
+
     public static String _UICC_TERMINAL_EXT[] = new String[] {"1", "2"};
     public static String _eSE_TERMINAL_EXT[] = new String[] {"1", "2"};
     public static String _SD_TERMINAL_EXT[] = new String[] {"1", "2"};
@@ -267,11 +289,11 @@ public final class SmartcardService extends Service {
     private void registerSimStateChangedEvent(Context context) {
         Log.v(_TAG, "register SIM_STATE_CHANGED event");
 
-        IntentFilter intentFilter = new IntentFilter("android.intent.action.SIM_STATE_CHANGED");
+        IntentFilter intentFilter = new IntentFilter(ACTION_SIM_STATE_CHANGED);
         mSimReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if("android.intent.action.SIM_STATE_CHANGED".equals(intent.getAction())) {
+                if(ACTION_SIM_STATE_CHANGED.equals(intent.getAction())) {
                     final Bundle  extras    = intent.getExtras();
                     final boolean simReady  = (extras != null) && "READY".equals(extras.getString("ss"));
                     final boolean simLoaded = (extras != null) && "LOADED".equals(extras.getString("ss"));
@@ -303,11 +325,11 @@ public final class SmartcardService extends Service {
     private void registerAdapterStateChangedEvent(Context context) {
         Log.v(_TAG, "register ADAPTER_STATE_CHANGED event");
 
-        IntentFilter intentFilter = new IntentFilter("android.nfc.action.ADAPTER_STATE_CHANGED");
+        IntentFilter intentFilter = new IntentFilter(ACTION_ADAPTER_STATE_CHANGED);
         mNfcReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                final boolean nfcAdapterAction = intent.getAction().equals("android.nfc.action.ADAPTER_STATE_CHANGED");
+                final boolean nfcAdapterAction = ACTION_ADAPTER_STATE_CHANGED.equals(intent.getAction());
                 final boolean nfcAdapterOn = nfcAdapterAction && intent.getIntExtra("android.nfc.extra.ADAPTER_STATE", 1) == 3; // is NFC Adapter turned on ?
                 if( nfcAdapterOn){
                     Log.i(_TAG, "NFC Adapter is ON. Checking access rules for updates.");
@@ -363,10 +385,10 @@ public final class SmartcardService extends Service {
         Log.v(_TAG, "register NFC event");
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED");
-        intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED");
-        intentFilter.addAction("com.android.nfc_extras.action.AID_SELECTED");
-        intentFilter.addAction("org.simalliance.openmobileapi.service.ACTION_CHECK_CERT");
+        intentFilter.addAction(ACTION_RF_FIELD_ON_DETECTED);
+        intentFilter.addAction(ACTION_RF_FIELD_OFF_DETECTED);
+        intentFilter.addAction(ACTION_AID_SELECTED);
+        intentFilter.addAction(ACTION_CHECK_CERT);
 
         mNfcEventReceiver = new BroadcastReceiver() {
             @Override
@@ -380,17 +402,17 @@ public final class SmartcardService extends Service {
 
                 String action = intent.getAction();
 
-                if (action.equals("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED")){
+                if (RF_FIELD_ON_DETECTED.equals(action)){
                     nfcAdapterExtraActionRfFieldOn = true;
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                     Log.i(_TAG, "got RF_FIELD_ON_DETECTED");
                 }
-                else if (action.equals("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED")){
+                else if (RF_FIELD_OFF_DETECTED.equals(action)){
                     nfcAdapterExtraActionRfFieldOff = true;
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                     Log.i(_TAG, "got RF_FIELD_OFF_DETECTED");
                 }
-                else if (action.equals("org.simalliance.openmobileapi.service.ACTION_CHECK_CERT")){
+                else if (ACTION_CHECK_CERT.equals(action)){
                     Log.i(_TAG, "got ACTION_CHECK_CERT");
                     seName = intent.getStringExtra("org.simalliance.openmobileapi.service.EXTRA_SE_NAME");
                     String pkg = intent.getStringExtra("org.simalliance.openmobileapi.service.EXTRA_PKG");
@@ -430,7 +452,7 @@ public final class SmartcardService extends Service {
                     }
                     return;
                 }
-                else if (action.equals("com.android.nfc_extras.action.AID_SELECTED")){
+                else if (ACTION_AID_SELECTED.equals(action)){
                     nfcAdapterExtraActionAidSelected = true;
                     aid = intent.getByteArrayExtra("com.android.nfc_extras.extra.AID");
                     data = intent.getByteArrayExtra("com.android.nfc_extras.extra.DATA");
@@ -523,7 +545,7 @@ public final class SmartcardService extends Service {
                         synchronized(this) {
                             for (int i = 0; i < mInstalledPackages.size(); i++) {
                                 if (nfcEventAccessFinal[i]) {
-                                    if (packageNames[i].equals("org.simalliance.openmobileapi.service"))
+                                    if (packageNames[i].equals(OPENMOBILE_API_PACKAGE))
                                         continue;
                                     intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
                                     intent.setPackage(packageNames[i]);
@@ -555,11 +577,11 @@ public final class SmartcardService extends Service {
     private void registerMediaMountedEvent(Context context) {
         Log.v(_TAG, "register MEDIA_MOUNTED event");
 
-        IntentFilter intentFilter = new IntentFilter("android.intent.action.MEDIA_MOUNTED");
+        IntentFilter intentFilter = new IntentFilter(ACTION_MEDIA_MOUNTED);
         mMediaReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                final boolean mediaMounted = intent.getAction().equals("android.intent.action.MEDIA_MOUNTED");
+                final boolean mediaMounted = ACTION_MEDIA_MOUNTED.equals(intent.getAction());
                 if( mediaMounted){
                     Log.i(_TAG, "New Media is mounted. Checking access rules for updates.");
                      mServiceHandler.sendMessage(MSG_LOAD_SD_RULES, 5);
@@ -884,8 +906,7 @@ public final class SmartcardService extends Service {
     private Object[] getBuildinTerminalClasses() {
         ArrayList classes = new ArrayList();
         try {
-            String packageName = "org.simalliance.openmobileapi.service";
-            String apkName = getPackageManager().getApplicationInfo(packageName, 0).sourceDir;
+            String apkName = getPackageManager().getApplicationInfo(OPENMOBILE_API_PACKAGE, 0).sourceDir;
             DexClassLoader dexClassLoader = new DexClassLoader(apkName, getApplicationContext().getFilesDir().getAbsolutePath(), null, getClass()
                     .getClassLoader());
 
