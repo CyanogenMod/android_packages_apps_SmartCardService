@@ -402,12 +402,12 @@ public final class SmartcardService extends Service {
 
                 String action = intent.getAction();
 
-                if (RF_FIELD_ON_DETECTED.equals(action)){
+                if (ACTION_RF_FIELD_ON_DETECTED.equals(action)){
                     nfcAdapterExtraActionRfFieldOn = true;
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                     Log.i(_TAG, "got RF_FIELD_ON_DETECTED");
                 }
-                else if (RF_FIELD_OFF_DETECTED.equals(action)){
+                else if (ACTION_RF_FIELD_OFF_DETECTED.equals(action)){
                     nfcAdapterExtraActionRfFieldOff = true;
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                     Log.i(_TAG, "got RF_FIELD_OFF_DETECTED");
