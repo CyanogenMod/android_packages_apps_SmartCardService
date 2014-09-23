@@ -26,6 +26,7 @@ import com.android.qcom.nfc_extras.*;
 import android.os.Binder;
 import android.os.Bundle;
 import android.util.Log;
+import android.os.AsyncTask;
 
 
 import java.util.MissingResourceException;
@@ -40,52 +41,79 @@ public class SmartMxTerminal extends Terminal {
 
     private final String TAG;
 
-    private INfcAdapterExtras ex;
     private Binder binder = new Binder();
 
     private final int mSeId;
+
+    private NfcQcomAdapter mNfcQcomAdapter;
+    GetNfcQcomAdapterTask mGetNfcQcomAdapterTask;
+
+    private class GetNfcQcomAdapterTask extends AsyncTask<Void, Void, Void > {
+
+        Context context;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        public GetNfcQcomAdapterTask(Context context){
+            this.context = context;
+        }
+        @Override
+        protected Void doInBackground(Void... unused) {
+            try {
+                    mNfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(context);
+                    if (mNfcQcomAdapter == null)
+                        Log.d (TAG, "mNfcQcomAdapter is NULL");
+                    Log.d (TAG, "SmartMxTerminal NfcQcomAdapter");
+                }
+            catch( Exception e ){
+                Log.e(TAG, "doInBackground(): got exception" + e.getMessage());;
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            mGetNfcQcomAdapterTask = null;
+        }
+    }
 
     public SmartMxTerminal(Context context, int seId) {
         super(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[seId], context);
         mSeId = seId;
         TAG = SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[seId];
+        mGetNfcQcomAdapterTask = new GetNfcQcomAdapterTask(context);
+        mGetNfcQcomAdapterTask.execute();
     }
 
     public boolean isCardPresent() throws CardException {
         try {
-            NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(mContext);
-            if (nfcQcomAdapter != null) {
-                return nfcQcomAdapter.isSeEnabled(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[mSeId]);
+            if (mNfcQcomAdapter != null) {
+                return mNfcQcomAdapter.isSeEnabled(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[mSeId]);
             } else {
                 Log.d (TAG, "cannot get NfcQcomAdapter");
                 return false;
             }
         } catch (Exception e) {
+            Log.e (TAG, e.getMessage());
             return false;
         }
     }
 
     @Override
     protected void internalConnect() throws CardException {
-        NfcAdapter adapter =  NfcAdapter.getDefaultAdapter(mContext);
-        if(adapter == null) {
-            throw new CardException("Cannot get NFC Default Adapter");
-        }
-
-        ex = adapter.getNfcAdapterExtrasInterface();
-        if(ex == null)  {
-            throw new CardException("Cannot get NFC Extra interface");
-        }
 
         try {
-            NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(mContext);
-            if (nfcQcomAdapter != null) {
-                nfcQcomAdapter.selectSEToOpenApduGate(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[mSeId]);
+            if (mNfcQcomAdapter != null) {
+                mNfcQcomAdapter.selectSEToOpenApduGate(SmartcardService._eSE_TERMINAL + SmartcardService._eSE_TERMINAL_EXT[mSeId]);
             } else {
                 throw new CardException("cannot get NfcQcomAdapter");
             }
 
-            Bundle b = ex.open("org.simalliance.openmobileapi.service", binder);
+            Bundle b = mNfcQcomAdapter.open(binder);
             if (b == null) {
                 throw new CardException("open SE failed");
             }
@@ -99,9 +127,13 @@ public class SmartMxTerminal extends Terminal {
     @Override
     protected void internalDisconnect() throws CardException {
         try {
-            Bundle b = ex.close("org.simalliance.openmobileapi.service", binder);
-            if (b == null) {
-                throw new CardException("close SE failed");
+            if (mNfcQcomAdapter != null) {
+                Bundle b = mNfcQcomAdapter.close(binder);
+                if (b == null) {
+                    throw new CardException("close SE failed");
+                }
+            } else {
+                throw new CardException("cannot get NfcQcomAdapter");
             }
         } catch (Exception e) {
             throw new CardException("close SE failed");
@@ -110,10 +142,15 @@ public class SmartMxTerminal extends Terminal {
 
     @Override
     protected byte[] internalTransmit(byte[] command) throws CardException {
+        Bundle b;
         try {
-            Bundle b = ex.transceive("org.simalliance.openmobileapi.service", command);
-            if (b == null) {
-                throw new CardException("exchange APDU failed");
+            if (mNfcQcomAdapter != null) {
+                b = mNfcQcomAdapter.transceive(command);
+                if (b == null) {
+                    throw new CardException("exchange APDU failed");
+                }
+            } else {
+                throw new CardException("cannot get NfcQcomAdapter");
             }
             return b.getByteArray("out");
         } catch (Exception e) {

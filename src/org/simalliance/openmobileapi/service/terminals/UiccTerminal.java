@@ -172,15 +172,14 @@ public class UiccTerminal extends Terminal {
             if ((channelNumber > 0) && (channelId[channelNumber] == 0)) {
                 throw new CardException("channel not open");
             }
-
             try {
                 if (SmartcardService.mIsMultiSimEnabled) {
                     String response = manager.iccTransmitApduLogicalChannelUsingSubId(mUiccSlot,
-                            cla, ins, channelId[channelNumber], p1, p2, p3, data);
+                            channelId[channelNumber], cla, ins, p1, p2, p3, data);
                     return StringToByteArray(response);
                 } else {
                     String response = manager.iccTransmitApduLogicalChannel(
-                            cla, ins, channelId[channelNumber], p1, p2, p3, data);
+                            channelId[channelNumber], cla, ins, p1, p2, p3, data);
                     return StringToByteArray(response);
                 }
             } catch (Exception ex) {
@@ -297,7 +296,6 @@ public class UiccTerminal extends Terminal {
             if (channelId[i] == 0) {
                 if (SmartcardService.mIsMultiSimEnabled) {
                     response = manager.iccOpenLogicalChannelUsingSubId(mUiccSlot, ByteArrayToString(aid, 0));
-                    response = null;
                 } else {
                     response = manager.iccOpenLogicalChannel(ByteArrayToString(aid, 0));
                 }
