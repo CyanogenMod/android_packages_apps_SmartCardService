@@ -306,11 +306,11 @@ public class UiccTerminal extends Terminal {
                     channelId[i] = 0;
                     int status = response.getStatus();
 
-                    if (status == IccOpenLogicalChannelResponse.MISSING_RESOURCE) {
+                    if (status == IccOpenLogicalChannelResponse.STATUS_MISSING_RESOURCE) {
                         throw new MissingResourceException(
                                 "all channels are used", "", "");
                     }
-                    if (status == IccOpenLogicalChannelResponse.NO_SUCH_ELEMENT) {
+                    if (status == IccOpenLogicalChannelResponse.STATUS_NO_SUCH_ELEMENT) {
                         throw new NoSuchElementException("applet not found");
                     }
                     throw new CardException("open channel failed");
