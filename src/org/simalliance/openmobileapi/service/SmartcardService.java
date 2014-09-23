@@ -116,6 +116,12 @@ public final class SmartcardService extends Service {
     private static final String ACTION_MEDIA_MOUNTED =
             "android.intent.action.MEDIA_MOUNTED";
 
+    //RF changes
+    private static final String RF_FIELD_ON_DETECTED =
+            "com.android.nfc_extras.action.RF_FIELD_ON_DETECTED";
+    private static final String RF_FIELD_OFF_DETECTED =
+            "com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED";
+
     public static String _UICC_TERMINAL_EXT[] = new String[] {"1", "2"};
     public static String _eSE_TERMINAL_EXT[] = new String[] {"1", "2"};
     public static String _SD_TERMINAL_EXT[] = new String[] {"1", "2"};
