@@ -99,6 +99,7 @@ public final class SmartcardService extends Service {
     public static String _SD_TERMINAL_EXT[] = new String[] {"1", "2"};
 
     public static boolean mIsMultiSimEnabled;
+    public static String mIsisConfig;
 
     static void clearError(SmartcardError error) {
         if (error != null) {
@@ -191,6 +192,12 @@ public final class SmartcardService extends Service {
         mIsMultiSimEnabled = (multiSimConfig.equals("dsds") ||
                               multiSimConfig.equals("dsda") ||
                               multiSimConfig.equals("tsts"));
+
+        mIsisConfig = SystemProperties.get("persist.nfc.smartcard.isis");
+        if(mIsisConfig == null) {
+            mIsisConfig = "none";
+        }
+        Log.v(_TAG, "mIsisConfig = " + mIsisConfig);
 
         updatePackageCache();
 
@@ -710,11 +717,13 @@ public final class SmartcardService extends Service {
         if(list.remove(_UICC_TERMINAL + _UICC_TERMINAL_EXT[0]))
             list.add(0, _UICC_TERMINAL + _UICC_TERMINAL_EXT[0]);
 
-        createAddonTerminals();
-        names = mAddOnTerminals.keySet();
-        for (String name : names) {
-            if (!list.contains(name)) {
-                list.add(name);
+        if (mIsisConfig.equals("none")) {
+            createAddonTerminals();
+            names = mAddOnTerminals.keySet();
+            for (String name : names) {
+                if (!list.contains(name)) {
+                    list.add(name);
+                }
             }
         }
 
@@ -736,11 +745,13 @@ public final class SmartcardService extends Service {
         if(list.remove(_UICC_TERMINAL + _UICC_TERMINAL_EXT[0]))
             list.add(0, _UICC_TERMINAL + _UICC_TERMINAL_EXT[0]);
 
-        updateAddonTerminals();
-        names = mAddOnTerminals.keySet();
-        for (String name : names) {
-            if (!list.contains(name)) {
-                list.add(name);
+        if (mIsisConfig.equals("none")) {
+            updateAddonTerminals();
+            names = mAddOnTerminals.keySet();
+            for (String name : names) {
+                if (!list.contains(name)) {
+                    list.add(name);
+                }
             }
         }
 
@@ -954,6 +965,7 @@ public final class SmartcardService extends Service {
             if( terminal != null ){
                 return terminal.new SmartcardServiceReader(SmartcardService.this);
             }
+            Log.e(_TAG, "getReader(): setError IllegalArgumentException");
             setError(error, IllegalArgumentException.class, "invalid reader name");
             return null;
         }
@@ -1100,14 +1112,17 @@ public final class SmartcardService extends Service {
                 throws RemoteException {
             clearError(error);
             if ( isClosed() ) {
+                Log.e(_TAG, "openBasicChannelAid(): setError IllegalStateException");
                 setError( error, IllegalStateException.class, "session is closed");
                 return null;
             }
             if (callback == null) {
+                Log.e(_TAG, "openBasicChannelAid(): setError NullPointerException(callback must not be null)");
                 setError(error, NullPointerException.class, "callback must not be null");
                 return null;
             }
             if (mReader == null) {
+                Log.e(_TAG, "openBasicChannelAid(): setError NullPointerException(reader must not be null)");
                 setError(error, NullPointerException.class, "reader must not be null");
                 return null;
             }
@@ -1171,15 +1186,18 @@ public final class SmartcardService extends Service {
             clearError(error);
 
             if ( isClosed() ) {
+                Log.e(_TAG, "openLogicalChannel(): setError IllegalStateException");
                 setError( error, IllegalStateException.class, "session is closed");
                 return null;
             }
 
             if (callback == null) {
+                Log.e(_TAG, "openLogicalChannel(): setError NullPointerException(callback must not be null)");
                 setError(error, NullPointerException.class, "callback must not be null");
                 return null;
             }
             if (mReader == null) {
+                Log.e(_TAG, "openLogicalChannel(): setError NullPointerException(reader must not be null)");
                 setError(error, NullPointerException.class, "reader must not be null");
                 return null;
             }

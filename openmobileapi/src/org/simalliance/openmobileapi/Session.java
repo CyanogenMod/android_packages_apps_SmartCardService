@@ -70,9 +70,11 @@ public class Session {
      */
     public byte[] getATR() {
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "getATR(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession == null ){
+            Log.e(_TAG, "getATR(): throw NullPointerException");
             throw new NullPointerException("service session is null");
         }
         try {
@@ -88,6 +90,7 @@ public class Session {
      */
     public void close() {
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "close(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession != null ){
@@ -126,6 +129,7 @@ public class Session {
     public void closeChannels() {
 
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "closeChannels(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
 
@@ -182,12 +186,15 @@ public class Session {
     public Channel openBasicChannel(byte[] aid) throws IOException {
 
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "openBasicChannel(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession == null ){
+            Log.e(_TAG, "openBasicChannel(): throw NullPointerException(service session is null)");
             throw new NullPointerException("service session is null");
         }
         if (getReader() == null) {
+            Log.e(_TAG, "openBasicChannel(): throw NullPointerException(reader must not be null)");
             throw new NullPointerException("reader must not be null");
         }
 
@@ -273,12 +280,15 @@ public class Session {
     public Channel openLogicalChannel(byte[] aid) throws IOException {
 
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "openLogicalChannel(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if( mSession == null ){
+            Log.e(_TAG, "openLogicalChannel(): throw NullPointerException(service session is null)");
             throw new NullPointerException("service session is null");
         }
         if (getReader() == null) {
+            Log.e(_TAG, "openLogicalChannel(): throw NullPointerException(reader must not be null)");
             throw new NullPointerException("reader must not be null");
         }
         synchronized (mLock) {

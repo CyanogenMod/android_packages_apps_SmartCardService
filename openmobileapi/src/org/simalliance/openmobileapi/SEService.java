@@ -161,6 +161,7 @@ public class SEService {
      */
     public Reader[] getReaders() {
         if (mSmartcardService == null) {
+            Log.e(SERVICE_TAG, "getReaders(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
 
@@ -233,8 +234,10 @@ public class SEService {
         try {
             error.throwException();
         } catch (CardException exp) {
+            Log.e(SERVICE_TAG, "checkForException(): throw IllegalStateException");
             throw new IllegalStateException(exp.getMessage());
         } catch (AccessControlException exp) {
+            Log.e(SERVICE_TAG, "checkForException(): throw SecurityException");
             throw new SecurityException(exp.getMessage());
         }
     }

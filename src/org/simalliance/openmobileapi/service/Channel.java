@@ -76,7 +76,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         try {
             mBinder.linkToDeath(this, 0);
         } catch (RemoteException e) {
-            Log.e(SmartcardService._TAG, "Failed to register client callback");
+            Log.e(_TAG, "Failed to register client callback");
         }
     }
 
@@ -91,7 +91,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
     public void binderDied() {
         // Close this channel if the client died.
         try {
-            Log.e(SmartcardService._TAG, Thread.currentThread().getName()
+            Log.e(_TAG, Thread.currentThread().getName()
                     + " Client " + mBinder.toString() + " died");
             close();
         } catch (Exception ignore) {
@@ -103,18 +103,19 @@ class Channel implements IChannel, IBinder.DeathRecipient {
 
         Terminal terminal = getTerminal();
         if( terminal == null ){
+            Log.e(_TAG, "close(): throw IllegalStateException");
             throw new IllegalStateException( "channel is not attached to a terminal");
         }
 
         if (isBasicChannel() && hasSelectedAid()) {
             try {
-                Log.v(SmartcardService._TAG, "Close basic channel - Select with out AID ...");
+                Log.v(_TAG, "Close basic channel - Select with out AID ...");
                 terminal.select();
             } catch (NoSuchElementException exp) {
 //#if defined(sec)
                 // Selection of the default application fails
                 try {
-                    Log.v(SmartcardService._TAG, "Close basic channel - Exception : " + exp.getLocalizedMessage());
+                    Log.v(_TAG, "Close basic channel - Exception : " + exp.getLocalizedMessage());
                     AccessControlEnforcer access = terminal.getAccessControlEnforcer();
                     if( access != null ){
                         terminal.select(AccessControlEnforcer.getDefaultAccessControlAid());
@@ -179,123 +180,132 @@ class Channel implements IChannel, IBinder.DeathRecipient {
     }
 
     public byte[] transmit(byte[] command) throws CardException {
-
+        boolean isNeedToCheckIntegrity = true;
         if( mChannelAccess == null ){
+            Log.e(_TAG, "transmit(): throw AccessControlException(Channel access not set)");
             throw new AccessControlException( " Channel access not set.");
         }
         if (mChannelAccess.getCallingPid() !=  mCallingPid) {
-
-
-
+            Log.e(_TAG, "transmit(): throw AccessControlException(Wrong Caller PID)");
             throw new AccessControlException(" Wrong Caller PID. ");
         }
 
-
-
         checkCommand(command);
 
-
         if (command.length < 4) {
+            Log.e(_TAG, "transmit(): throw IllegalArgumentException(command must not be smaller than 4 bytes)");
             throw new IllegalArgumentException(
                     " command must not be smaller than 4 bytes");
         }
+
         if (((command[0] & (byte) 0x80) == 0)
                 && ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
             // ISO command
             if (command[1] == (byte) 0x70) {
+                Log.e(_TAG, "transmit(): throw IllegalArgumentException(MANAGE CHANNEL command not allowed)");
                 throw new IllegalArgumentException(
                         "MANAGE CHANNEL command not allowed");
             }
             if ((command[1] == (byte) 0xA4) && (command[2] == (byte) 0x04)) {
+                Log.e(_TAG, "transmit(): throw IllegalArgumentException(SELECT command not allowed)");
                 throw new IllegalArgumentException("SELECT command not allowed");
             }
+        } else if (command[0] == (byte)0xFF) {
+            Log.e(_TAG, "transmit(): throw IllegalArgumentException(CLA(0xFF) not allowed)");
+            throw new IllegalArgumentException("CLA(0xFF) not allowed");
+        } else {
+            isNeedToCheckIntegrity = false;
+        }
 
-                        if (command.length > 4) {
-                            int sizeOfLcField = 0;
-                            int commandDataLength = 0;
-                            int startIndexLeField = 0;
-                            int maxExpectedResponseDataLength = 0;
+        if ((!SmartcardService.mIsisConfig.equals("none")) &&
+            ((byte) (command[0] & (byte) 0x60) != (byte) 0x20)) {
+            isNeedToCheckIntegrity = true;
+        }
 
-                            if (command.length == 5) {
-                                maxExpectedResponseDataLength = command[4] & 0xff;
-                                if (maxExpectedResponseDataLength == 0)
-                                    maxExpectedResponseDataLength = 256;
-                            }
-                            else if ((command.length == 7) &&
-                                     (command[4] == (byte) 0x00)) { // only with extended Le (3 bytes)
+        if (isNeedToCheckIntegrity) {
+            if (command.length > 4) {
+                int sizeOfLcField = 0;
+                int commandDataLength = 0;
+                int startIndexLeField = 0;
+                int maxExpectedResponseDataLength = 0;
 
-                                maxExpectedResponseDataLength = command[startIndexLeField + 1] & 0xff;
-                                maxExpectedResponseDataLength = maxExpectedResponseDataLength * 256;
-                                maxExpectedResponseDataLength += command[startIndexLeField + 2] & 0xff;
+                if (command.length == 5) {
+                    maxExpectedResponseDataLength = command[4] & 0xff;
+                    if (maxExpectedResponseDataLength == 0)
+                        maxExpectedResponseDataLength = 256;
+                } else if ((command.length == 7) &&
+                         (command[4] == (byte) 0x00)) { // only with extended Le (3 bytes)
 
-                                if (maxExpectedResponseDataLength == 0)
-                                    maxExpectedResponseDataLength = 65536;
+                    maxExpectedResponseDataLength = command[startIndexLeField + 1] & 0xff;
+                    maxExpectedResponseDataLength = maxExpectedResponseDataLength * 256;
+                    maxExpectedResponseDataLength += command[startIndexLeField + 2] & 0xff;
 
-                            }
-                            // if this has extended Lc field
-                            else if (command[4] == (byte) 0x00) {
-                                if ((command.length > 7) &&
-                                    ((command[5] != 0) || (command[6] != 0))) {  // extended Lc must not be zero
-                                    commandDataLength = command[5] & 0xff;
-                                    commandDataLength = commandDataLength * 256;
-                                    commandDataLength += command[6] & 0xff;
+                    if (maxExpectedResponseDataLength == 0)
+                        maxExpectedResponseDataLength = 65536;
 
-                                    if ((command.length != commandDataLength + 7) &&  // without Le
-                                        (command.length != commandDataLength + 8) &&  // with Le
-                                        (command.length != commandDataLength + 9)) {  // with extended Le (2 bytes)
-                                        throw new IllegalArgumentException("Invalid command data field with extended Lc");
-                                    }
-                                    else {
-                                        startIndexLeField = 7 + commandDataLength;
-                                        sizeOfLcField = 3;
-                                    }
-                                }
-                                else {
-                                    throw new IllegalArgumentException("Invalid extended Lc field");
-                                }
-                            }
-                            else {
-                                commandDataLength = command[4] & 0xff;
+                } else if (command[4] == (byte) 0x00) { // if this has extended Lc field
+                    if ((command.length > 7) &&
+                        ((command[5] != 0) || (command[6] != 0))) {  // extended Lc must not be zero
+                        commandDataLength = command[5] & 0xff;
+                        commandDataLength = commandDataLength * 256;
+                        commandDataLength += command[6] & 0xff;
 
-                                if ((command.length != commandDataLength + 5) &&  // without Le
-                                    (command.length != commandDataLength + 6) &&  // with Le
-                                    (command.length != commandDataLength + 7)) {  // with extended Le (2 bytes)
-                                    throw new IllegalArgumentException("Invalid command data field");
-                                }
-                                else {
-                                    startIndexLeField = 5 + commandDataLength;
-                                    sizeOfLcField = 1;
-                                }
-                            }
+                        if ((command.length != commandDataLength + 7) &&  // without Le
+                            (command.length != commandDataLength + 8) &&  // with Le
+                            (command.length != commandDataLength + 9)) {  // with extended Le (2 bytes)
+                            Log.e(_TAG, "transmit(): throw IllegalArgumentException(Invalid command data field with extended Lc)");
+                            throw new IllegalArgumentException("Invalid command data field with extended Lc");
+                        }
+                        else {
+                            startIndexLeField = 7 + commandDataLength;
+                            sizeOfLcField = 3;
+                        }
+                    }
+                    else {
+                        Log.e(_TAG, "transmit(): throw IllegalArgumentException(Invalid extended Lc field)");
+                        throw new IllegalArgumentException("Invalid extended Lc field");
+                    }
+                } else {
+                    commandDataLength = command[4] & 0xff;
 
-                            if (startIndexLeField > 0) {
-                                if (command.length != startIndexLeField) {
-                                    if ((sizeOfLcField == 3) &&
-                                        (command.length != startIndexLeField + 2)) {
-                                        throw new IllegalArgumentException("Invalid Le field with extended Lc field");
-                                    }
+                    if ((command.length != commandDataLength + 5) &&  // without Le
+                        (command.length != commandDataLength + 6) &&  // with Le
+                        (command.length != commandDataLength + 7)) {  // with extended Le (2 bytes)
+                        Log.e(_TAG, "transmit(): throw IllegalArgumentException(Invalid command data field)");
+                        throw new IllegalArgumentException("Invalid command data field");
+                    }
+                    else {
+                        startIndexLeField = 5 + commandDataLength;
+                        sizeOfLcField = 1;
+                    }
+                }
 
-                                    // if this has extended Le field with Lc present
-                                    if (command.length == startIndexLeField + 2) {
-                                        maxExpectedResponseDataLength = command[startIndexLeField] & 0xff;
-                                        maxExpectedResponseDataLength = maxExpectedResponseDataLength * 256;
-                                        maxExpectedResponseDataLength += command[startIndexLeField + 1] & 0xff;
+                if (startIndexLeField > 0) {
+                    if (command.length != startIndexLeField) {
+                        if ((sizeOfLcField == 3) &&
+                            (command.length != startIndexLeField + 2)) {
+                            Log.e(_TAG, "transmit(): throw IllegalArgumentException(Invalid Le field with extended Lc field)");
+                            throw new IllegalArgumentException("Invalid Le field with extended Lc field");
+                        }
 
-                                        if (maxExpectedResponseDataLength == 0)
-                                            maxExpectedResponseDataLength = 65536;
-                                    }
-                                    else if (command.length == startIndexLeField + 1) { // short Le
-                                        maxExpectedResponseDataLength = command[startIndexLeField] & 0xff;
-                                    }
-                                    else {
-                                        throw new IllegalArgumentException("Invalid Le field");
-                                    }
+                        // if this has extended Le field with Lc present
+                        if (command.length == startIndexLeField + 2) {
+                            maxExpectedResponseDataLength = command[startIndexLeField] & 0xff;
+                            maxExpectedResponseDataLength = maxExpectedResponseDataLength * 256;
+                            maxExpectedResponseDataLength += command[startIndexLeField + 1] & 0xff;
 
-                                }
+                            if (maxExpectedResponseDataLength == 0) {
+                                maxExpectedResponseDataLength = 65536;
+                            } else if (command.length == startIndexLeField + 1) { // short Le
+                                maxExpectedResponseDataLength = command[startIndexLeField] & 0xff;
+                            } else {
+                                Log.e(_TAG, "transmit(): throw IllegalArgumentException(Invalid Le field)");
+                                throw new IllegalArgumentException("Invalid Le field");
                             }
                         }
-        } else {
-            // GlobalPlatform command
+                    }
+                }
+            }
         }
 
         // set channel number bits
@@ -512,15 +522,18 @@ class Channel implements IChannel, IBinder.DeathRecipient {
 
             try {
                 if (isClosed()) {
+                    Log.e(_TAG, "transmit(): setError IllegalStateException");
                     SmartcardService.setError(error, IllegalStateException.class, "channel is closed");
                     return null;
                 }
 
                 if (command == null) {
+                    Log.e(_TAG, "transmit(): setError NullPointerException");
                     SmartcardService.setError(error, NullPointerException.class, "command must not be null");
                     return null;
                 }
                 if (command.length < 4) {
+                    Log.e(_TAG, "transmit(): setError IllegalArgumentException");
                     SmartcardService.setError(error, IllegalArgumentException.class,
                             "command must have at least 4 bytes");
                     return null;
@@ -545,6 +558,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
 
             try {
                 if (isClosed()) {
+                    Log.e(_TAG, "selectNext(): setError IllegalStateException");
                     SmartcardService.setError(error, IllegalStateException.class, "channel is closed");
                     return false;
                 }

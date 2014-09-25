@@ -59,9 +59,11 @@ public class Channel {
      */
     public void close() {
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "close(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
+            Log.e(_TAG, "close(): throw NullPointerException");
             throw new NullPointerException("channel must not be null");
         }
         SmartcardError error = new SmartcardError();
@@ -104,9 +106,11 @@ public class Channel {
      */
     public boolean isBasicChannel() {
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "isBasicChannel(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
+            Log.e(_TAG, "isBasicChannel(): throw NullPointerException");
             throw new NullPointerException("channel must not be null");
         }
         try {
@@ -149,9 +153,11 @@ public class Channel {
      */
     public byte[] transmit(byte[] command) throws IOException {
         if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "transmit(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
+            Log.e(_TAG, "transmit(): throw NullPointerException");
             throw new NullPointerException("channel must not be null");
         }
 
@@ -188,14 +194,17 @@ public class Channel {
      */
     public byte[] getSelectResponse()
     {
-           if (mService == null || mService.isConnected() == false) {
+        if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "getSelectResponse(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
+            Log.e(_TAG, "getSelectResponse(): throw NullPointerException");
             throw new NullPointerException("channel must not be null");
         }
         try {
             if (mChannel.isClosed()) {
+                Log.e(_TAG, "getSelectResponse(): throw IllegalStateException (channel is closed)");
                 throw new IllegalStateException("channel is closed");
             }
         } catch (Exception e1) {
@@ -231,14 +240,17 @@ public class Channel {
      * @throws SecurityException if the command is filtered by the security policy
      */
     public boolean selectNext() throws IOException {
-           if (mService == null || mService.isConnected() == false) {
+        if (mService == null || mService.isConnected() == false) {
+            Log.e(_TAG, "selectNext(): throw IllegalStateException");
             throw new IllegalStateException("service not connected to system");
         }
         if (mChannel == null) {
+            Log.e(_TAG, "selectNext(): throw IllegalStateException(channel must not be null)");
             throw new IllegalStateException("channel must not be null");
         }
         try {
             if (mChannel.isClosed()) {
+                Log.e(_TAG, "selectNext(): throw IllegalStateException(channel is closed)");
                 throw new IllegalStateException("channel is closed");
             }
         } catch (Exception e1) {

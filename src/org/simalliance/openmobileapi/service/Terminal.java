@@ -664,7 +664,11 @@ public abstract class Terminal implements ITerminal {
 
             synchronized (mLock) {
                 try {
-                    mService.initializeAccessControl(Terminal.this.getName(), null);
+                    if (mService.initializeAccessControl(Terminal.this.getName(), null) == false) {
+                        if (!SmartcardService.mIsisConfig.equals("none")) {
+                            return null; // Reader.openSession() will throw an IOException when session is null
+                        }
+                    }
                 } catch (Exception e ){
                     SmartcardService.setError(error,e);
                     return null; // Reader.openSession() will throw an IOException when session is null

@@ -24,6 +24,8 @@ import org.simalliance.openmobileapi.service.ISmartcardServiceReader;
 import org.simalliance.openmobileapi.service.ISmartcardServiceSession;
 import org.simalliance.openmobileapi.service.SmartcardError;
 import android.os.RemoteException;
+import android.util.Log;
+
 
 /**
  * Instances of this class represent Secure Element Readers connected to this
@@ -38,6 +40,7 @@ public class Reader {
     private final String mName;
     private final SEService mService;
     private ISmartcardServiceReader mReader;
+    public static final String TAG = "Reader";
 
     private final Object mLock = new Object();
 
@@ -78,12 +81,14 @@ public class Reader {
     public Session openSession() throws IOException {
 
         if( mService == null || mService.isConnected() == false ){
+            Log.e(TAG, "openSession(): throw IllegalStateException");
             throw new IllegalStateException("service is not connected");
         }
         if( mReader == null ){
             try {
                 mReader = mService.getReader(mName);
             } catch (Exception e) {
+                Log.e(TAG, "openSession(): throw IOException");
                 throw new IOException("service reader cannot be accessed.");
             }
         }
@@ -99,6 +104,7 @@ public class Reader {
             SEService.checkForException(error);
 
             if( session == null ){
+                Log.e(TAG, "openSession(): throw IOException(service session is null)");
                 throw new IOException( "service session is null." );
             }
 
@@ -113,12 +119,14 @@ public class Reader {
      */
     public boolean isSecureElementPresent() {
         if( mService == null || mService.isConnected() == false ){
+            Log.e(TAG, "isSecureElementPresent(): throw IllegalStateException");
             throw new IllegalStateException("service is not connected");
         }
         if( mReader == null ){
             try {
                 mReader = mService.getReader(mName);
             } catch (Exception e) {
+                Log.e(TAG, "isSecureElementPresent(): throw IllegalStateException(service reader cannot be accessed)");
                 throw new IllegalStateException("service reader cannot be accessed. " + e.getLocalizedMessage());
             }
         }
@@ -149,6 +157,7 @@ public class Reader {
      */
     public void closeSessions() {
         if( mService == null || mService.isConnected() == false ){
+            Log.e(TAG, "closeSessions(): throw IllegalStateException");
             throw new IllegalStateException("service is not connected");
         }
         if( mReader != null ) {
