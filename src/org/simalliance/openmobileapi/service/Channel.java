@@ -203,12 +203,13 @@ class Channel implements IChannel, IBinder.DeathRecipient {
             // ISO command
             if (command[1] == (byte) 0x70) {
                 Log.e(_TAG, "transmit(): throw IllegalArgumentException(MANAGE CHANNEL command not allowed)");
-                throw new IllegalArgumentException(
+                throw new SecurityException(
                         "MANAGE CHANNEL command not allowed");
             }
             if ((command[1] == (byte) 0xA4) && (command[2] == (byte) 0x04)) {
                 Log.e(_TAG, "transmit(): throw IllegalArgumentException(SELECT command not allowed)");
-                throw new IllegalArgumentException("SELECT command not allowed");
+                throw new SecurityException(
+                        "SELECT by DF name command not allowed");
             }
         } else if (command[0] == (byte)0xFF) {
             Log.e(_TAG, "transmit(): throw IllegalArgumentException(CLA(0xFF) not allowed)");
@@ -333,7 +334,7 @@ class Channel implements IChannel, IBinder.DeathRecipient {
             throw new CardException(" no aid given");
         }
 
-        mSelectResponse = null;
+        byte[] mBufferSelectResponse = null;
         byte[] selectCommand = new byte[5 + mAid.length];
         selectCommand[0] = 0x00;
         selectCommand[1] = (byte) 0xA4;
@@ -345,20 +346,24 @@ class Channel implements IChannel, IBinder.DeathRecipient {
         // set channel number bits
         selectCommand[0] = setChannelToClassByte(selectCommand[0], mChannelNumber);
 
-        mSelectResponse = getTerminal().transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
+        mBufferSelectResponse = getTerminal().transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
 
 
 
-        int sw1 = mSelectResponse[mSelectResponse.length - 2] & 0xFF;
-        int sw2 = mSelectResponse[mSelectResponse.length - 1] & 0xFF;
+        int sw1 = mBufferSelectResponse[mBufferSelectResponse.length - 2] & 0xFF;
+        int sw2 = mBufferSelectResponse[mBufferSelectResponse.length - 1] & 0xFF;
         int sw = (sw1 << 8) | sw2;
 
-        if( (sw & 0xF000) == 0x9000 ){
+        if (((sw & 0xF000) == 0x9000) || ((sw & 0xFF00) == 0x6200)
+                 || ((sw & 0xFF00) == 0x6300)){
+            mSelectResponse = mBufferSelectResponse.clone();
+            mBufferSelectResponse = null;
             return true;
-        } else if( sw == 0x6a82 ) {
+        } else if ((sw & 0xFF00) == 0x6A00) {
+            mBufferSelectResponse = null;
             return false;
         } else {
-            throw new CardException(" invalid action" );
+            throw new UnsupportedOperationException(" unsupported operation");
         }
     }
 

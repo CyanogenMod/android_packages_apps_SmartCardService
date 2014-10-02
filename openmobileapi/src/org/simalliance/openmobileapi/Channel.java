@@ -238,6 +238,7 @@ public class Channel {
      * @throws IOException if there is a communication problem to the reader or the Secure Element.
      * @throws IllegalStateException if the channel is used after being closed or it is not connected.
      * @throws SecurityException if the command is filtered by the security policy
+     * @throws UnsupportedOperationException if selectNext is not supported by Secure Element.
      */
     public boolean selectNext() throws IOException {
         if (mService == null || mService.isConnected() == false) {
@@ -253,8 +254,8 @@ public class Channel {
                 Log.e(_TAG, "selectNext(): throw IllegalStateException(channel is closed)");
                 throw new IllegalStateException("channel is closed");
             }
-        } catch (Exception e1) {
-            throw new RuntimeException(e1.getMessage());
+        } catch (RemoteException e1) {
+            throw new IllegalStateException(e1.getMessage());
         }
 
         boolean response = false;
@@ -262,6 +263,8 @@ public class Channel {
             SmartcardError error = new SmartcardError();
             try {
                 response = mChannel.selectNext(error);
+            } catch (RemoteException e1) {
+                throw new IllegalStateException(e1.getMessage());
             } catch (Exception e) {
                 throw new IOException(e.getMessage());
             }
