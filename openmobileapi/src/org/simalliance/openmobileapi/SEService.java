@@ -175,10 +175,14 @@ public class SEService {
 
         Reader[] readers = new Reader[readerNames.length];
         int i = 0;
-        mReaders.clear();
+//        mReaders.clear();
         for (String readerName : readerNames) {
-            mReaders.put(readerName, new Reader( this, readerName ));
-            readers[i++] = mReaders.get(readerName);
+            if(mReaders.get(readerName)==null) {
+                mReaders.put(readerName, new Reader( this, readerName ));
+                readers[i++] = mReaders.get(readerName);
+            } else {
+                readers[i++] = mReaders.get(readerName);
+            }
         }
         return readers;
     }
