@@ -71,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -151,6 +152,7 @@ public final class SmartcardService extends Service {
 
     List<PackageInfo> mInstalledPackages; // cached version of installed packages
 
+    static NfcQcomAdapter nfcQcomAdapter = null;
     void updatePackageCache() {
         PackageManager pm = getPackageManager();
         // List<PackageInfo> packages = pm.getInstalledPackages(0, UserHandle.USER_OWNER);
@@ -181,6 +183,14 @@ public final class SmartcardService extends Service {
         Log.v(_TAG, Thread.currentThread().getName()
                 + " smartcard service onCreate");
 
+        final Context context = getApplicationContext();
+        Log.d(_TAG,"NfcAdapter acquired");
+        new Thread(){
+            public void run() {
+                NfcQcomAdapter.getNfcQcomAdapter(context);
+                Log.d(_TAG,"binding established");
+            }
+        }.start();
         // Start up the thread running the service.  Note that we create a
         // separate thread because the service normally runs in the process's
         // main thread, which we don't want to block.  We also make it
@@ -429,6 +439,8 @@ public final class SmartcardService extends Service {
                     }
 
                     Log.i(_TAG, "Checking access rules for " + seName);
+
+                    acEnforcer.setPackageManager(getPackageManager());
 
                     try {
                         if (acEnforcer.hasCertificate(pkg)) {
