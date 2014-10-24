@@ -44,6 +44,8 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.SystemProperties;
+import android.Manifest.permission;
+import android.Manifest;
 
 import android.net.Uri;
 
@@ -151,7 +153,10 @@ public final class SmartcardService extends Service {
 
     void updatePackageCache() {
         PackageManager pm = getPackageManager();
-        List<PackageInfo> packages = pm.getInstalledPackages(0, UserHandle.USER_OWNER);
+        // List<PackageInfo> packages = pm.getInstalledPackages(0, UserHandle.USER_OWNER);
+        String[] permissions = new String[1];
+        permissions[0]=Manifest.permission.NFC;
+        List<PackageInfo> packages = pm.getPackagesHoldingPermissions(permissions, 0);
         synchronized (this) {
             mInstalledPackages = packages;
         }
@@ -384,7 +389,6 @@ public final class SmartcardService extends Service {
                 byte[] aid = null;
                 byte[] data = null;
                 String seName = null;
-
                 String action = intent.getAction();
 
                 if (action.equals("com.android.nfc_extras.action.RF_FIELD_ON_DETECTED")){
