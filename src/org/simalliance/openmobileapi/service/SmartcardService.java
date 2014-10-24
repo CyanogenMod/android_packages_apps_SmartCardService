@@ -1139,6 +1139,17 @@ public final class SmartcardService extends Service {
                     return null;
                 }
 
+                /*
+                 * OpenBasicChannel shall always return null w/o security exception.
+                 */
+                if (true) {
+                    Log.v(_TAG, "OpenBasicChannel(AID): not allowed");
+                    return null;
+                }
+
+                /*
+                 * Keep below for reference.
+                 */
 
                 String packageName = getPackageNameFromCallingUid( Binder.getCallingUid());
                 Log.v(_TAG, "Enable access control on basic channel for " + packageName);
@@ -1151,10 +1162,6 @@ public final class SmartcardService extends Service {
 
                 channelAccess.setCallingPid(Binder.getCallingPid());
 
-                if (true) {
-                    Log.v(_TAG, "OpenBasicChannel(AID): not allowed");
-                    return null;
-                }
 
                 Log.v(_TAG, "OpenBasicChannel(AID)");
                 Channel channel = null;

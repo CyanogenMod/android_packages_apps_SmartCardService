@@ -332,7 +332,7 @@ public class AccessControlEnforcer {
                 throw new AccessControlException("Application certificates are invalid or do not exist.");
             }
 
-
+            updateAccessRuleIfNeed(callback);
             channelAccess = getAccessRule(aid, appCerts, callback );
 
         } catch (Throwable exp) {
@@ -455,6 +455,7 @@ public class AccessControlEnforcer {
          mNfcEventFlags = new boolean[packageNames.length];
          int i=0;
          ChannelAccess channelAccess = null;
+         updateAccessRuleIfNeed(callback);
          for( String packageName : packageNames ) {
              // estimate SHA-1 hash value of the device application's certificate.
                 Certificate[] appCerts;
@@ -518,6 +519,23 @@ public class AccessControlEnforcer {
             // if ARA and ARF is not available and terminal DOES NOT belong to a UICC -> mFullAccess is true
             // if ARA and ARF is not available and terminal belongs to a UICC -> mFullAccess is false
             return this.mFullAccess;
+        }
+    }
+
+
+    public void updateAccessRuleIfNeed(ISmartcardServiceCallback callback) {
+        if( mUseAra && mAraController != null ){
+            try {
+                mAraController.initialize(true, callback);
+            } catch( Exception e ) {
+                Log.e(SmartcardService._TAG, e.getMessage() );
+            }
+        } else if( mUseArf && mArfController != null) {
+            try {
+                mArfController.initialize(callback);
+            } catch( Exception e ) {
+                Log.e(SmartcardService._TAG, e.getMessage() );
+            }
         }
     }
 
