@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ *
+ * Not a Contribution.
+ */
+
+/*
  * Copyright 2012 Giesecke & Devrient GmbH.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -44,7 +50,8 @@ import org.simalliance.openmobileapi.service.SmartcardService;
 import org.simalliance.openmobileapi.service.Util;
 import org.simalliance.openmobileapi.service.security.ChannelAccess.ACCESS;
 import org.simalliance.openmobileapi.service.security.ara.AraController;
-
+import org.simalliance.openmobileapi.service.security.arf.SecureElementException;
+import org.simalliance.openmobileapi.service.security.arf.PKCS15.PKCS15Exception;
 import org.simalliance.openmobileapi.service.security.arf.ArfController;
 
 
@@ -218,11 +225,43 @@ public class AccessControlEnforcer {
     }
 
     public static Certificate decodeCertificate(byte[] certData) throws CertificateException {
+        Log.d(SmartcardService._TAG, "decodeCertificate for appcert ...." );
         CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
         X509Certificate cert = (X509Certificate) certFactory
                 .generateCertificate(new ByteArrayInputStream(certData));
-
         return cert;
+    }
+
+    public synchronized boolean Checkx509Certif (String packageName)
+        throws PKCS15Exception, SecureElementException, CertificateException{
+
+        ArrayList<X509Certificate> Uiccx509 = null;
+        Certificate[] appCerts = null;
+        try {
+            Uiccx509 = mArfController.getx509Certif();
+        } catch (Throwable exp) {
+            throw new AccessControlException(exp.getMessage());
+        }
+        if(Uiccx509==null) return false;
+
+        try {
+            appCerts = getAPPCerts(packageName);
+            if (appCerts == null || appCerts.length == 0) {
+                throw new AccessControlException("Application certificates are invalid or do not exist.");
+            }
+        } catch (Throwable exp) {
+            throw new AccessControlException(exp.getMessage());
+        }
+        for (int i = 0; i < appCerts.length; i++) {
+            if (Uiccx509.contains(appCerts[i])) {
+                 Log.d(SmartcardService._TAG, "Uiccx509.contains(appCerts)");
+                 return true;
+            } else {
+                Log.d(SmartcardService._TAG, "Uiccx509 DOES NOT contains(appCerts)");
+                return false;
+            }
+        }
+        return false;
     }
 
     public synchronized void checkCommand(IChannel channel, byte[] command) {
