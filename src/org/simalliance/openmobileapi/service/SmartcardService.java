@@ -1155,17 +1155,11 @@ public final class SmartcardService extends Service {
                     return null;
                 }
 
-                /*
-                 * OpenBasicChannel shall always return null w/o security exception.
-                 */
-                if (true) {
-                    Log.v(_TAG, "OpenBasicChannel(AID): not allowed");
+                if (mReader.getTerminal().getName().startsWith(_UICC_TERMINAL)) {
+                    Log.v(_TAG, "OpenBasicChannel(AID): not allowed for UICC");
+                    // OpenBasicChannel shall always return null w/o security exception.
                     return null;
                 }
-
-                /*
-                 * Keep below for reference.
-                 */
 
                 String packageName = getPackageNameFromCallingUid( Binder.getCallingUid());
                 Log.v(_TAG, "Enable access control on basic channel for " + packageName);
