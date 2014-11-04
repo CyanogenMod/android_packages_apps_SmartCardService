@@ -708,6 +708,13 @@ public final class SmartcardService extends Service {
         }
         ITerminal terminal = mTerminals.get(reader);
         if (terminal == null) {
+            if (!mIsisConfig.equals("none")) {
+                if(reader.equals("SIM1")) {
+                    terminal = mTerminals.get("SIM" + _UICC_TERMINAL_EXT[0]);
+                }
+            }
+        }
+        if (terminal == null) {
             terminal = mAddOnTerminals.get(reader);
             if (terminal == null) {
                 setError(error, IllegalArgumentException.class, "unknown reader");
