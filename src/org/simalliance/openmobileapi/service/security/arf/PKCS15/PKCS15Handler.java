@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ *
+ * Not a Contribution.
+ */
+
+/*
  * Copyright (C) 2011 Deutsche Telekom, A.G.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,12 +37,15 @@ import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFACRules;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFDIR;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFDODF;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFODF;
+import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFCDF;
+import org.simalliance.openmobileapi.service.security.arf.PKCS15.EFTCF;
 import org.simalliance.openmobileapi.service.security.arf.PKCS15.PKCS15Exception;
-
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import android.os.Build;
 import android.os.SystemProperties;
 import android.util.Log;
-
+import java.util.ArrayList;
 /**
  * Handles PKCS#15 topology
  ***************************************************/
@@ -73,11 +82,12 @@ public class PKCS15Handler {
 
     private byte[] mPkcs15Path = null;
     private byte[] mACMainPath = null;
-
+    EFTCF TCFObject = null;
     // SIM Allowed modes:
     private boolean mSimIoAllowed;
     private boolean mSimAllianceAllowed;
-
+    private boolean mX509found = false;
+    public ArrayList<X509Certificate> CertifList = null;
     /**
      * Updates "Access Control Rules"
      */
@@ -113,11 +123,20 @@ public class PKCS15Handler {
         }
     }
 
+    public ArrayList<X509Certificate> getCertif ()
+        throws PKCS15Exception, SecureElementException, CertificateException {
+            if (mX509found) {
+                Log.v(TAG, "returning CertifList");
+                return CertifList;
+            } else {
+                throw new PKCS15Exception("Cannot get x509 certificates via EF Dir");
+            }
+    }
     /**
      * Initializes "Access Control" entry point [ACMain]
      */
     private void initACEntryPoint()
-        throws PKCS15Exception, SecureElementException
+        throws PKCS15Exception, SecureElementException, CertificateException
     {
 
         byte[] DODFPath=null;
@@ -134,11 +153,20 @@ public class PKCS15Handler {
                     EFDODF DODFObject=new EFDODF(mSEHandle);
                     acMainPath=DODFObject.analyseFile(DODFPath);
                     mACMainPath = acMainPath;
+
+                    EFCDF CDFObject=new EFCDF(mSEHandle);
+                    if (CDFObject.checkCDF()) {
+                        TCFObject=new EFTCF(mSEHandle);
+                        CertifList = TCFObject.analyseFile();
+                        mX509found = true;
+                    }
+
                 } else {
                     if( mPkcs15Path != null ) {
                         acMainPath = new byte[mPkcs15Path.length + mACMainPath.length];
                         System.arraycopy(mPkcs15Path, 0, acMainPath, 0, mPkcs15Path.length);
                         System.arraycopy(mACMainPath, 0, acMainPath, mPkcs15Path.length, mACMainPath.length );
+
                     } else {
                         acMainPath = mACMainPath;
                     }

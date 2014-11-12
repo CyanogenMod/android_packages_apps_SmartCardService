@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ *
+ * Not a Contribution.
+ */
+
+/*
  * Copyright (C) 2011, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -389,6 +395,7 @@ public final class SmartcardService extends Service {
         intentFilter.addAction("com.android.nfc_extras.action.RF_FIELD_OFF_DETECTED");
         intentFilter.addAction("com.android.nfc_extras.action.AID_SELECTED");
         intentFilter.addAction("org.simalliance.openmobileapi.service.ACTION_CHECK_CERT");
+        intentFilter.addAction("org.simalliance.openmobileapi.service.ACTION_CHECK_X509");
 
         mNfcEventReceiver = new BroadcastReceiver() {
             @Override
@@ -410,6 +417,44 @@ public final class SmartcardService extends Service {
                     nfcAdapterExtraActionRfFieldOff = true;
                     aid = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00 };
                     Log.i(_TAG, "got RF_FIELD_OFF_DETECTED");
+                }
+                else if (action.equals("org.simalliance.openmobileapi.service.ACTION_CHECK_X509")){
+                    Log.i(_TAG, "got ACTION_CHECK_X509");
+                    String pkg = intent.getStringExtra("org.simalliance.openmobileapi.service.EXTRA_PKG");
+                    seName = intent.getStringExtra("org.simalliance.openmobileapi.service.EXTRA_SE_NAME");
+
+                    NfcQcomAdapter nfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(context);
+                    if (nfcQcomAdapter == null) {
+                        Log.i(_TAG, "Couldn't get NfcQcomAdapter");
+                        return;
+                    }
+
+                    SmartcardError error = new SmartcardError();
+                    ITerminal terminal = getTerminal(seName, error);
+                    if (terminal == null) {
+                        Log.i(_TAG, "Couldn't get terminal for " + seName);
+                        return;
+                    }
+
+                    AccessControlEnforcer acEnforcer;
+                    acEnforcer = terminal.getAccessControlEnforcer();
+                    if( acEnforcer == null ) {
+                        Log.i(_TAG, "Couldn't get AccessControlEnforcer for " + seName);
+                        nfcQcomAdapter.notifyCheckCertResult(false);
+                        return;
+                    }
+
+                    try {
+                       if (acEnforcer.hasCertificate(pkg) && acEnforcer.Checkx509Certif(pkg)) {
+                            nfcQcomAdapter.notifyCheckCertResult(true);
+                       } else {
+                            nfcQcomAdapter.notifyCheckCertResult(false);
+                       }
+                    } catch (Exception e) {
+                        nfcQcomAdapter.notifyCheckCertResult(false);
+                    }
+
+                    return;
                 }
                 else if (action.equals("org.simalliance.openmobileapi.service.ACTION_CHECK_CERT")){
                     Log.i(_TAG, "got ACTION_CHECK_CERT");
