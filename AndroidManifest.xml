@@ -20,9 +20,8 @@
 
         <uses-library android:name="org.simalliance.openmobileapi" android:required="true" />
         <uses-library android:name="com.android.nfc.helper" android:required="true" />
-        <uses-library android:name="com.android.qcom.nfc_extras"
-            android:required="true"
-        />
+        <uses-library android:name="com.android.qcom.nfc_extras" android:required="true" />
+        <uses-library android:name="com.vzw.nfc" android:required="true" />
 
         <service android:enabled="true"
                  android:name="org.simalliance.openmobileapi.service.SmartcardService"

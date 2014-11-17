@@ -54,6 +54,7 @@ import com.android.internal.telephony.TelephonyProperties;
 import android.nfc.INfcAdapterExtras;
 import android.nfc.NfcAdapter;
 import com.android.qcom.nfc_extras.*;
+import com.vzw.nfc.*;
 
 import org.simalliance.openmobileapi.service.Channel;
 import org.simalliance.openmobileapi.service.Channel.SmartcardServiceChannel;
@@ -78,7 +79,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
+import java.util.Arrays;
 
 
 import org.simalliance.openmobileapi.service.security.AccessControlEnforcer;
@@ -120,6 +121,21 @@ public final class SmartcardService extends Service {
     static void setError(SmartcardError error, Exception e) {
         if (error != null) {
             error.setError(e.getClass(), e.getMessage());
+        }
+    }
+
+    private static byte[] mAidFilters = null;
+    private static AidFilter mAidFilter = null;
+
+    public static void updateClfAidFilters(byte[] aidFilters) {
+        Log.v(_TAG, "updateClfAidFilters()");
+        // send to NfcService only if different
+        if (!Arrays.equals(mAidFilters, aidFilters)) {
+            mAidFilters = aidFilters;
+            if(mAidFilter == null) {
+                mAidFilter = new AidFilter();
+            }
+            mAidFilter.setFilterList(mAidFilters);
         }
     }
 
