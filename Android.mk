@@ -9,7 +9,7 @@ LOCAL_AIDL_INCLUDES := $(LOCAL_PATH)/openmobileapi/src/org/simalliance/openmobil
 LOCAL_PACKAGE_NAME := SmartcardService
 LOCAL_CERTIFICATE := platform
 
-LOCAL_JAVA_LIBRARIES := org.simalliance.openmobileapi com.android.qcom.nfc_extras
+LOCAL_JAVA_LIBRARIES := org.simalliance.openmobileapi com.android.qcom.nfc_extras com.vzw.nfc
 
 LOCAL_PROGUARD_ENABLED := disabled
 

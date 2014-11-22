@@ -17,7 +17,10 @@ package org.simalliance.openmobileapi.service.security.gpac.dataobjects;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 
+import org.simalliance.openmobileapi.service.SmartcardService;
 
 /**
  * REF-AR_DO:
@@ -33,6 +36,7 @@ public class REF_AR_DO extends BerTlv {
 
     private REF_DO mRefDo = null;
     private AR_DO mArDo = null;
+    private ArrayList<CLF_FILTER_DO> mClfFilterDos = new ArrayList<CLF_FILTER_DO>();
 
     public REF_AR_DO(byte[] rawData, int valueIndex, int valueLength) {
         super(rawData, _TAG, valueIndex, valueLength);
@@ -48,12 +52,23 @@ public class REF_AR_DO extends BerTlv {
         mArDo = ar_do;
     }
 
+    public REF_AR_DO(REF_DO ref_do, AR_DO ar_do, ArrayList<CLF_FILTER_DO> clf_filter_dos ) {
+        super(null, _TAG, 0, 0);
+        mRefDo = ref_do;
+        mArDo = ar_do;
+        mClfFilterDos = clf_filter_dos;
+    }
+
     public REF_DO getRefDo() {
         return mRefDo;
     }
 
     public AR_DO getArDo() {
         return mArDo;
+    }
+
+    public ArrayList<CLF_FILTER_DO> getClfFilterDos() {
+        return mClfFilterDos;
     }
 
     /**
@@ -75,6 +90,7 @@ public class REF_AR_DO extends BerTlv {
 
         mRefDo = null;
         mArDo = null;
+        mClfFilterDos.clear();
 
         byte[] data = getRawData();
         int index = getValueIndex();
@@ -92,6 +108,15 @@ public class REF_AR_DO extends BerTlv {
                 mArDo = new AR_DO( data, temp.getValueIndex(), temp.getValueLength());
                 mArDo.interpret();
             } else {
+                if (SmartcardService.mIsisConfig.equals("verizon")) {
+                    if( temp.getTag() == CLF_FILTER_DO._TAG ) { // CLF-FILTER-DO
+                        CLF_FILTER_DO tempClfFilterDo;
+                        tempClfFilterDo = new CLF_FILTER_DO( data, temp.getValueIndex(), temp.getValueLength());
+                        tempClfFilterDo.interpret();
+                        mClfFilterDos.add(tempClfFilterDo);
+                    }
+                }
+
                 // uncomment following line if a more restrictive
                 // behavior is necessary.
                 //throw new ParserException("Invalid DO in REF-AR-DO!");
@@ -127,6 +152,12 @@ public class REF_AR_DO extends BerTlv {
 
         mRefDo.build(temp);
         mArDo.build(temp);
+
+        if( !mClfFilterDos.isEmpty() ){
+            for (Iterator<CLF_FILTER_DO> it = mClfFilterDos.iterator(); it.hasNext();) {
+                it.next().build(temp);
+            }
+        }
 
         byte[] data = temp.toByteArray();
         BerTlv.encodeLength(data.length, stream);

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.MissingResourceException;
+import java.io.ByteArrayOutputStream;
 
 import org.simalliance.openmobileapi.service.CardException;
 import org.simalliance.openmobileapi.service.IChannel;
@@ -35,6 +36,8 @@ import org.simalliance.openmobileapi.service.security.ChannelAccess;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.BerTlv;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.ParserException;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.REF_AR_DO;
+import org.simalliance.openmobileapi.service.security.gpac.dataobjects.CLF_FILTER_DO;
+import org.simalliance.openmobileapi.service.security.gpac.dataobjects.AID_REF_DO;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.Response_ALL_AR_DO;
 import org.simalliance.openmobileapi.service.security.gpac.dataobjects.Response_DO_Factory;
 
@@ -178,13 +181,40 @@ public class AraController {
             } if( tlv instanceof Response_ALL_AR_DO ){
 
                 ArrayList<REF_AR_DO> array = ((Response_ALL_AR_DO)tlv).getRefArDos();
+                ArrayList<CLF_FILTER_DO> clfFilterDos = new ArrayList<CLF_FILTER_DO>();
+
                 if( array == null || array.size() == 0 ){
                     return false; // no rules
                 } else {
                     Iterator<REF_AR_DO> iter = array.iterator();
                     while( iter.hasNext() ){
                         REF_AR_DO ref_ar_do = iter.next();
+
+                        if (SmartcardService.mIsisConfig.equals("verizon")) {
+                            AID_REF_DO clfFilterAidRefDo = new AID_REF_DO(AID_REF_DO._TAG, CLF_FILTER_DO.CLF_FILTER_AID);
+                            if( clfFilterAidRefDo.equals(ref_ar_do.getRefDo().getAidDo())) {
+                                clfFilterDos.addAll(ref_ar_do.getClfFilterDos());
+                                continue;
+                            }
+                        }
+
                         this.mAccessRuleCache.putWithMerge(ref_ar_do.getRefDo(), ref_ar_do.getArDo());
+                    }
+
+                    if (!clfFilterDos.isEmpty()) {
+                        //notify CLF AID Filters
+                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+                        Iterator<CLF_FILTER_DO> it = clfFilterDos.iterator();
+                        while( it.hasNext() ){
+                             CLF_FILTER_DO clf_filter_do = it.next();
+                             try {
+                                 clf_filter_do.build(stream);
+                             } catch(Exception e) {
+                                 Log.e(ACCESS_CONTROL_ENFORCER_TAG, "Got Exception to build CLF_FILTER_DO");
+                             }
+                        }
+                        SmartcardService.updateClfAidFilters(stream.toByteArray());
                     }
                 }
             } else {
@@ -194,6 +224,14 @@ public class AraController {
             throw new AccessControlException("Parsing Data Object Exception: " + e.getMessage());
         }
         return true;
+    }
+
+    private String ByteArrayToString(byte[] b, int start) {
+        StringBuffer s = new StringBuffer();
+        for (int i = start; i < b.length; i++) {
+            s.append(Integer.toHexString(0x100 + (b[i] & 0xff)).substring(1));
+        }
+        return s.toString();
     }
 
     private IChannel openChannel(ITerminal terminal, byte[] aid, ISmartcardServiceCallback callback) throws Exception
