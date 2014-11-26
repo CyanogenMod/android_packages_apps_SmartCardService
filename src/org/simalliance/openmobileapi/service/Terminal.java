@@ -311,7 +311,16 @@ public abstract class Terminal implements ITerminal {
 
 
             Channel basicChannel = createChannel(session, 0, callback);
-            basicChannel.hasSelectedAid(false, null);
+
+            byte[] selectedAid = null;
+            if (mSelectResponse != null) {
+                selectedAid = getSelectedAid (mSelectResponse);
+            }
+            if (selectedAid != null)
+                basicChannel.hasSelectedAid(true, selectedAid);
+            else
+                basicChannel.hasSelectedAid(false, null);
+
             registerChannel(basicChannel);
             return basicChannel;
         }
@@ -344,7 +353,16 @@ public abstract class Terminal implements ITerminal {
 
 
             Channel basicChannel = createChannel(session, 0, callback);
-            basicChannel.hasSelectedAid(true, aid);
+
+            byte[] selectedAid = null;
+            if (mSelectResponse != null) {
+                selectedAid = getSelectedAid (mSelectResponse);
+            }
+            if (selectedAid != null)
+                basicChannel.hasSelectedAid(true, selectedAid);
+            else
+                basicChannel.hasSelectedAid(false, null);
+
             mDefaultApplicationSelectedOnBasicChannel = false;
             registerChannel(basicChannel);
             return basicChannel;
@@ -373,7 +391,16 @@ public abstract class Terminal implements ITerminal {
 
 
             Channel logicalChannel = createChannel(session, channelNumber, callback);
-            logicalChannel.hasSelectedAid(false, null);
+
+            byte[] selectedAid = null;
+            if (mSelectResponse != null) {
+                selectedAid = getSelectedAid (mSelectResponse);
+            }
+            if (selectedAid != null)
+                logicalChannel.hasSelectedAid(true, selectedAid);
+            else
+                logicalChannel.hasSelectedAid(false, null);
+
             registerChannel(logicalChannel);
             return logicalChannel;
         }
@@ -404,7 +431,16 @@ public abstract class Terminal implements ITerminal {
 
 
             Channel logicalChannel = createChannel(session, channelNumber, callback);
-            logicalChannel.hasSelectedAid(true, aid);
+
+            byte[] selectedAid = null;
+            if (mSelectResponse != null) {
+                selectedAid = getSelectedAid (mSelectResponse);
+            }
+            if (selectedAid != null)
+                logicalChannel.hasSelectedAid(true, selectedAid);
+            else
+                logicalChannel.hasSelectedAid(false, null);
+
             registerChannel(logicalChannel);
             return logicalChannel;
         }
@@ -426,9 +462,7 @@ public abstract class Terminal implements ITerminal {
     protected synchronized byte[] protocolTransmit(byte[] cmd) throws CardException {
         byte[] command = cmd;
         byte[] rsp = null;
-        synchronized (mLock) {
-            rsp = internalTransmit(command);
-        }
+        rsp = internalTransmit(command);
 
         //don't display NullPointerException
         if (rsp == null) {
@@ -588,12 +622,18 @@ public abstract class Terminal implements ITerminal {
             PackageManager packageManager,
             byte[] aid,
             String packageName,
+            boolean checkRefreshTag,
             ISmartcardServiceCallback callback){
         if( mAccessControlEnforcer == null ){
             throw new AccessControlException("Access Control Enforcer not properly set up");
         }
-        mAccessControlEnforcer.setPackageManager(packageManager);
-        return mAccessControlEnforcer.setUpChannelAccess(aid, packageName, callback);
+        if (packageManager != null)
+            mAccessControlEnforcer.setPackageManager(packageManager);
+
+        synchronized (mLock) {
+            ChannelAccess channelAccess = mAccessControlEnforcer.setUpChannelAccess(aid, packageName, checkRefreshTag, callback);
+            return channelAccess;
+        }
     }
 
     public synchronized boolean initializeAccessControl(boolean loadAtStartup, ISmartcardServiceCallback callback ){
@@ -611,6 +651,26 @@ public abstract class Terminal implements ITerminal {
         if(mAccessControlEnforcer != null ) mAccessControlEnforcer.reset();
     }
 
+    public byte[] getSelectedAid (byte[] selectResponse) {
+        byte[] selectedAid = null;
+        if ((selectResponse != null) &&
+            (selectResponse.length == (selectResponse[1] + 4)) && // header(2) + SW(2)
+            (selectResponse[0] == (byte)0x6F)) {
+            int nextTLV = 2;
+            while (selectResponse.length > nextTLV) {
+                if (selectResponse[nextTLV] == (byte)0x84) {
+                    if (selectResponse.length >= (nextTLV + selectResponse[nextTLV + 1] + 2)) {
+                        selectedAid = new byte[selectResponse[nextTLV + 1]];
+                        System.arraycopy(selectResponse, nextTLV + 2, selectedAid, 0, selectResponse[nextTLV + 1]);
+                    }
+                    break;
+                } else {
+                    nextTLV += 2 + selectResponse[nextTLV + 1];
+                }
+            }
+        }
+        return selectedAid;
+    }
 
     /**
      * Implementation of the SmartcardService Reader interface according to OMAPI.
@@ -620,8 +680,6 @@ public abstract class Terminal implements ITerminal {
         protected final SmartcardService mService;
 
         private final ArrayList<SmartcardServiceSession> mSessions = new ArrayList<SmartcardServiceSession>();
-
-        private final Object mLock = new Object();
 
         public SmartcardServiceReader( SmartcardService service ){
             this.mService = service;
