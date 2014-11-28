@@ -174,7 +174,8 @@ public interface ITerminal {
      *
      * @return ChannelAccess object containing the access flags/filter.
      */
-    ChannelAccess setUpChannelAccess( PackageManager packageManager, byte[] aid, String packageName, ISmartcardServiceCallback callback);
+    ChannelAccess setUpChannelAccess( PackageManager packageManager, byte[] aid, String packageName,
+                                      boolean checkRefreshTag, ISmartcardServiceCallback callback);
 
     /**
      * Set up the correct access control hander ARA (or ARF)

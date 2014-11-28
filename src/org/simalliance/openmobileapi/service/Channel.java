@@ -323,12 +323,8 @@ class Channel implements IChannel, IBinder.DeathRecipient {
             throw new AccessControlException( " Channel access not set.");
         }
         if (mChannelAccess.getCallingPid() !=  mCallingPid) {
-
-
-
             throw new AccessControlException(" Wrong Caller PID. ");
         }
-
 
         if( mAid == null || mAid.length == 0){
             throw new CardException(" no aid given");
@@ -348,14 +344,36 @@ class Channel implements IChannel, IBinder.DeathRecipient {
 
         mBufferSelectResponse = getTerminal().transmit(selectCommand, 2, 0, 0, "SELECT NEXT");
 
-
-
         int sw1 = mBufferSelectResponse[mBufferSelectResponse.length - 2] & 0xFF;
         int sw2 = mBufferSelectResponse[mBufferSelectResponse.length - 1] & 0xFF;
         int sw = (sw1 << 8) | sw2;
 
         if (((sw & 0xF000) == 0x9000) || ((sw & 0xFF00) == 0x6200)
                  || ((sw & 0xFF00) == 0x6300)){
+
+            // check access control with selected AID
+            byte[] selectedAid = getTerminal().getSelectedAid(mBufferSelectResponse);
+            try {
+                Log.v(_TAG, "check access control for selected AID");
+                this.mChannelAccess = getTerminal().setUpChannelAccess(
+                            null,
+                            selectedAid,
+                            this.mChannelAccess.getPackageName(),
+                            false,
+                            this.mCallback );
+                Log.v(_TAG, "Access control successfully enabled for selected AID");
+                this.mChannelAccess.setCallingPid(Binder.getCallingPid());
+                this.hasSelectedAid(true, selectedAid);
+            } catch (Exception e) {
+                try {
+                    getTerminal().closeChannel(this);
+                    this.mIsClosed = true;
+                } finally {
+                    mBinder.unlinkToDeath(this, 0);
+                }
+                throw new SecurityException("selected AID is not allowed");
+            }
+
             mSelectResponse = mBufferSelectResponse.clone();
             mBufferSelectResponse = null;
             return true;
