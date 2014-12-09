@@ -62,14 +62,26 @@ public class SmartMxTerminal extends Terminal {
         }
         @Override
         protected Void doInBackground(Void... unused) {
-            try {
+            for(int tries = 0; tries < 3; tries++) {
+                try {
                     mNfcQcomAdapter = NfcQcomAdapter.getNfcQcomAdapter(context);
-                    if (mNfcQcomAdapter == null)
+                    if (mNfcQcomAdapter == null) {
                         Log.d (TAG, "mNfcQcomAdapter is NULL");
-                    Log.d (TAG, "SmartMxTerminal NfcQcomAdapter");
+                    } else {
+                        Log.d (TAG, "acquired NfcQcomAdapter");
+                        return null;
+                    }
+                } catch (UnsupportedOperationException e) {
+                    String errorMsg = "SmartMxTerminal() gracefully failing to acquire NfcQcomAdapter at boot. try" + tries;
+                    Log.e(TAG, errorMsg);
+                    new Throwable(TAG + ": " + errorMsg, e);
+                    e.printStackTrace();
                 }
-            catch( Exception e ){
-                Log.e(TAG, "doInBackground(): got exception" + e.getMessage());;
+                try {
+                    wait(5000);
+                } catch (Exception e) {
+                    Log.d(TAG, "Interupted while waiting for NfcQcomAdapter by " + e);
+                }
             }
             return null;
         }
