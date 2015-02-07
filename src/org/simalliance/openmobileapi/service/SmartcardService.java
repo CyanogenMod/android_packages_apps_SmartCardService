@@ -206,11 +206,25 @@ public final class SmartcardService extends Service {
                 + " smartcard service onCreate");
 
         final Context context = getApplicationContext();
-        Log.d(_TAG,"NfcAdapter acquired");
         new Thread(){
             public void run() {
-                NfcQcomAdapter.getNfcQcomAdapter(context);
-                Log.d(_TAG,"binding established");
+                for(int tries = 0; tries < 3; tries++) {
+                    try {
+                        NfcQcomAdapter.getNfcQcomAdapter(context);
+                        Log.d(_TAG,"binding established");
+                        return;
+                    } catch (UnsupportedOperationException e) {
+                        String errorMsg = "Smartcard service gracefully failing to acquire NfcQcomAdapter at boot. try" + tries;
+                        Log.e(_TAG, errorMsg);
+                        new Throwable(_TAG + ": " + errorMsg, e);
+                        e.printStackTrace();
+                    }
+                    try {
+                        wait(5000);
+                    } catch (Exception e) {
+                        Log.d(_TAG, "Interupted while waiting for NfcQcomAdapter by " + e);
+                    }
+                }
             }
         }.start();
         // Start up the thread running the service.  Note that we create a
